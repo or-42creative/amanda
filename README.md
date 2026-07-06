@@ -1,0 +1,58 @@
+# Amanda 🃏⚔️
+
+Online, real-time multiplayer **auto-battler card game**. Fast ~85-second matches: build your 4×4 board behind fog of war, then watch a 15-second automatic battle decide who destroys the enemy **King** first.
+
+> Game design lives in `משחק אמנדה - קלפים.docx` (bilingual Hebrew/English GDD).
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Language | **TypeScript** everywhere (one shared, deterministic, server-authoritative engine) |
+| Monorepo | **pnpm workspaces** |
+| Frontend UI | **React + Vite** (menus), **PixiJS** (battle arena renderer) |
+| Real-time backend | **Node + Colyseus** (rooms, matchmaking, state sync) |
+| Data validation | **Zod** — all cards/actions are JSON validated against schemas |
+| Future mobile | **Capacitor** (wraps the same web build to iOS/Android) |
+
+The 15-second battle is a **deterministic simulation**: the server runs it authoritatively and both clients replay the same seed → identical outcome, low bandwidth, cheat-resistant.
+
+## Repository layout
+
+```
+amanda/
+├─ packages/
+│  └─ shared/            @amanda/shared — types, Zod schemas, config, data loader
+│     ├─ src/
+│     │  ├─ config.ts        ← ALL tunable rules (deck size, phases, King ×5, elements…)
+│     │  ├─ schemas/         ← common, elements, ability, card, series, actionCard
+│     │  ├─ loader.ts        ← parse + validate + cross-record integrity
+│     │  └─ index.ts
+│     └─ scripts/validate-data.ts
+├─ data/                 JSON-driven content
+│  ├─ series/            one file per monster series (01-dragons, 17-slimes seeded)
+│  └─ action-cards.json  13 action cards
+└─ (coming next) packages/engine · apps/client · apps/server
+```
+
+## Getting started
+
+```bash
+pnpm install
+pnpm validate:data   # validate all card/action JSON against the schemas
+pnpm typecheck       # type-check every package
+```
+
+## Design principles baked into the code
+
+- **JSON-driven engine.** Cards, series synergies and action cards are pure data. Behaviors are expressed as *ability descriptors* (`{ type, trigger, params }`) — adding a card behavior = one enum entry + one engine handler, never a schema change.
+- **Everything flexible is in `config.ts`.** Deck size (18/24), action-card count, action-slot count, and random-vs-manual action selection are one-line edits, exactly as the GDD requires.
+- **Placeholder-first art.** Every card carries `art.placeholderColor` now and `art.sprite: null`; final graphics drop in as data later, no logic changes.
+- **Bilingual from day one.** Every user-facing string is a `LocalizedString { he, en }`.
+
+## Roadmap
+
+1. ✅ **Foundation** — monorepo, JSON card schema, seed data _(this step)_
+2. ⬜ **Engine** — headless deterministic combat sim + tests (4×8 arena, lanes, stacking, status effects)
+3. ⬜ **Client** — React + Pixi local playable single-player loop
+4. ⬜ **Multiplayer** — drop the engine into a Colyseus room

@@ -1,0 +1,171 @@
+[
+  {
+    "id": "triple_draw",
+    "name": { "he": "שליפה משולשת", "en": "Triple Draw" },
+    "rarity": "common",
+    "copiesInPack": 15,
+    "description": {
+      "he": "שולף 3 קלפים במכה אחת ליד. מעולה לחיסכון בזמן הבנייה.",
+      "en": "Draws 3 cards to hand at once. Great for saving build time."
+    },
+    "effect": "draw",
+    "params": { "count": 3 },
+    "usableIn": ["build"]
+  },
+  {
+    "id": "recycle_bin",
+    "name": { "he": "פח מחזור", "en": "Recycle Bin" },
+    "rarity": "common",
+    "copiesInPack": 15,
+    "description": {
+      "he": "מחזיר ליד את הקלף האחרון שזרקת לפח.",
+      "en": "Returns the last card you discarded back to your hand."
+    },
+    "effect": "recycleDiscard",
+    "params": {},
+    "usableIn": ["build"]
+  },
+  {
+    "id": "energy_boost",
+    "name": { "he": "בוסט אנרגיה", "en": "Energy Boost" },
+    "rarity": "common",
+    "copiesInPack": 14,
+    "description": {
+      "he": "מעניק +50 עוצמה לכל הקלפים שמונחים כרגע על הלוח שלך.",
+      "en": "Grants +50 power to all cards currently on your board."
+    },
+    "effect": "boardPowerBuff",
+    "params": { "power": 50 },
+    "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "radioactive_eraser",
+    "name": { "he": "מחק רדיואקטיבי", "en": "Radioactive Eraser" },
+    "rarity": "rare",
+    "copiesInPack": 8,
+    "description": {
+      "he": "מוחק קלף אחד שהיריב הניח (אם הופעל על המלך - מוריד לו נזק כבד במקום למחוק).",
+      "en": "Erases one enemy card (if used on the King, deals heavy damage instead of erasing)."
+    },
+    "effect": "eraseEnemyCard",
+    "params": { "kingFlatDamage": 2000 },
+    "usableIn": ["panic"]
+  },
+  {
+    "id": "time_freeze",
+    "name": { "he": "הקפאת זמן", "en": "Time Freeze" },
+    "rarity": "rare",
+    "copiesInPack": 8,
+    "description": {
+      "he": "מקפיא את המסך של היריב לחלוטין ל-3 שניות.",
+      "en": "Completely freezes the opponent's screen for 3 seconds."
+    },
+    "effect": "freezeEnemy",
+    "params": { "seconds": 3 },
+    "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "swap_places",
+    "name": { "he": "החלפת מקומות", "en": "Swap Places" },
+    "rarity": "rare",
+    "copiesInPack": 8,
+    "description": {
+      "he": "מחליף מיקומים בין שני קלפים שכבר הנחת על הלוח שלך.",
+      "en": "Swaps the positions of two cards you have already placed on your board."
+    },
+    "effect": "swapOwnCards",
+    "params": {},
+    "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "xray",
+    "name": { "he": "רנטגן", "en": "X-Ray" },
+    "rarity": "rare",
+    "copiesInPack": 7,
+    "description": {
+      "he": "חושף את כל הלוח של היריב (כולל שורת ההפתעה האחורית) למשך 5 שניות.",
+      "en": "Reveals the entire enemy board (including the back Surprise Row) for 5 seconds."
+    },
+    "effect": "revealBoard",
+    "params": { "seconds": 5 },
+    "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "ground_floor",
+    "name": { "he": "קומת קרקע", "en": "Ground Floor (Stacking)" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "מאפשר לבחור 4 משבצות בלוח ולהניח בהן קלף על גבי קלף. כשהעליון מת בקרב, התחתון נחשף.",
+      "en": "Lets you pick 4 slots and stack a card on top of another. When the top dies in battle, the bottom is revealed."
+    },
+    "effect": "enableStacking",
+    "params": { "slots": 4 },
+    "usableIn": ["build"]
+  },
+  {
+    "id": "dark_corners",
+    "name": { "he": "פינות אפלות", "en": "Dark Corners" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "מאפשר אוטומטית הנחת קלף כפול (Stack) בכל 4 הפינות החיצוניות של הלוח שלך.",
+      "en": "Automatically enables stacking a double card on all 4 outer corners of your board."
+    },
+    "effect": "autoStackCorners",
+    "params": {},
+    "usableIn": ["build"]
+  },
+  {
+    "id": "sandstorm",
+    "name": { "he": "סופת חול", "en": "Sandstorm" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "מערבב רנדומלית את המיקומים של כל הקלפים שהיריב הניח בשורה הקדמית שלו.",
+      "en": "Randomly shuffles the positions of all cards in the enemy's front row."
+    },
+    "effect": "shuffleEnemyFrontRow",
+    "params": {},
+    "usableIn": ["panic"]
+  },
+  {
+    "id": "steel_wall",
+    "name": { "he": "חומת פלדה", "en": "Steel Wall" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "מניח מגן פסיבי שחוסם לחלוטין את קלף המערכת הבא שהיריב ינסה להפעיל עליך.",
+      "en": "Places a passive shield that fully blocks the next Action Card the enemy tries to use on you."
+    },
+    "effect": "blockNextActionCard",
+    "params": {},
+    "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "full_refuel",
+    "name": { "he": "תדלוק מלא", "en": "Full Refuel" },
+    "rarity": "epic",
+    "copiesInPack": 4,
+    "description": {
+      "he": "משדרג מיידית קלף שהנחת על הלוח לגרסה החזקה יותר שלו (רמה 2) למשך המשחקון.",
+      "en": "Instantly upgrades a placed card to its stronger version (level 2) for the match."
+    },
+    "effect": "upgradeCardTemp",
+    "params": { "level": 2 },
+    "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "amanda_summon",
+    "name": { "he": "זימון אמנדה", "en": "Amanda's Awakening" },
+    "rarity": "legendary",
+    "copiesInPack": 1,
+    "description": {
+      "he": "עוצר את המשחק התחרותי, מאחד את הלוחות ומכניס את שני השחקנים לקרב Co-Op משותף מול אמנדה.",
+      "en": "Halts the competitive match, merges the boards and drops both players into a co-op battle against Amanda."
+    },
+    "effect": "summonAmanda",
+    "params": {},
+    "usableIn": ["build", "panic"]
+  }
+]

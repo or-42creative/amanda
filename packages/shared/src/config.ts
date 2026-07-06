@@ -1,0 +1,148 @@
+import type { Element } from "./schemas/elements.js";
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ *  Amanda — central game configuration
+ * ─────────────────────────────────────────────────────────────────────────
+ *  Every tunable rule the GDD asked to keep flexible lives HERE, in one place.
+ *  Changing deck size, action-card count, action-slot count, or switching
+ *  action-card selection from random → manual is a one-line edit — no engine
+ *  or UI logic depends on hard-coded values.
+ */
+
+/** Board geometry per player (GDD §1). */
+export const BOARD = {
+  /** Each player's grid is 4×4 (16 slots). */
+  width: 4,
+  height: 4,
+  /** The central 2×2 area merges into a single King slot. */
+  kingSlot: { x: 1, y: 1, width: 2, height: 2 },
+} as const;
+
+/** The combined battle arena (two boards joined) — GDD §10. */
+export const ARENA = {
+  /** 4 wide (own board) + 4 wide (enemy board) laid end to end = 8. */
+  width: 8,
+  height: 4,
+  /** 4 horizontal lanes. */
+  lanes: 4,
+} as const;
+
+/** King slot rules (GDD §2). */
+export const KING = {
+  /** The card in the King slot gets ×5 HP. */
+  hpMultiplier: 5,
+  /** The King slot is permanently static (King's Trap). */
+  static: true,
+  /** Per account level, add this flat HP to the King slot base (GDD §7). */
+  hpPerAccountLevel: 100,
+  /** Instant-kill effects deal this flat damage to the King instead of erasing it. */
+  instantKillFlatDamage: 2000,
+} as const;
+
+/** Match phase timeline in seconds (GDD §4). Total ≈ 85s. */
+export const PHASES = {
+  build: { seconds: 50, label: { he: "טירוף הבנייה", en: "Build Frenzy" } },
+  panic: { seconds: 10, label: { he: "שניות הפאניקה", en: "Panic Seconds" } },
+  battle: { seconds: 15, label: { he: "הקרב האוטומטי", en: "Auto-Battle" } },
+} as const;
+
+/**
+ * Deterministic simulation cadence. The 15s battle is computed as a fixed
+ * number of integer ticks so both server and clients reproduce it identically.
+ */
+export const SIMULATION = {
+  ticksPerSecond: 30,
+  get totalBattleTicks() {
+    return this.ticksPerSecond * PHASES.battle.seconds;
+  },
+} as const;
+
+/** Deck composition — all values intentionally editable (GDD §12 dev note). */
+export const DECK = {
+  /** Cards per competitive deck. GDD leaves 18 vs 24 to playtesting → default 18. */
+  size: 18,
+  allowedSizes: [18, 24] as const,
+  /** Starter deck = one card from each series. */
+  starterDeckSize: 18,
+} as const;
+
+/** Action ("System") card rules — the GDD's flagship flexibility example. */
+export const ACTION_CARDS = {
+  /** How many action cards a player gets per match. */
+  perMatch: 4,
+  /** Hidden action slots on the board. */
+  slots: 3,
+  /**
+   * How the match's action cards are chosen.
+   * "random"  → system draws them (current MVP behavior)
+   * "manual"  → player picks from their collection (future)
+   * Flip this string to switch mechanics — nothing else changes.
+   */
+  selectionMode: "random" as "random" | "manual",
+} as const;
+
+/** The auto-fill penalty for empty slots when the build timer ends (GDD §4). */
+export const CRUMB_DEMON = {
+  hp: 1,
+  power: 1,
+  attackSpeed: 2,
+} as const;
+
+/** Card upgrade scaling (GDD §7). */
+export const UPGRADE = {
+  /** Each level multiplies HP and Power by this (≈ +10%). */
+  statMultiplierPerLevel: 1.1,
+} as const;
+
+/** Trophy rewards (GDD §7). */
+export const TROPHIES = {
+  win: 25,
+  loss: -20,
+} as const;
+
+/** Series synergy threshold (GDD §4). */
+export const SYNERGY = {
+  defaultThreshold: 3,
+} as const;
+
+/**
+ * Element rock-paper-scissors chart (GDD §4). Multipliers below are a sane
+ * STARTING POINT for balancing — expected to be tuned during playtests.
+ * `strongVs` = deals extra damage to; the reverse is applied as weakness.
+ */
+export const ELEMENT_COMBAT = {
+  strongMultiplier: 1.5,
+  weakMultiplier: 0.75,
+  neutralMultiplier: 1.0,
+  /** Elements a given attacker is strong against. */
+  strongVs: {
+    fire: ["earth", "metal"],
+    water: ["fire"],
+    earth: ["electric", "poison"],
+    air: ["earth"],
+    electric: ["water", "metal"],
+    metal: ["poison", "air"],
+    light: ["dark"],
+    dark: ["light"],
+    poison: ["water"],
+    variable: [],
+  } satisfies Record<Element, Element[]>,
+} as const;
+
+/** Convenience: everything under one namespace for the engine to import. */
+export const GameConfig = {
+  BOARD,
+  ARENA,
+  KING,
+  PHASES,
+  SIMULATION,
+  DECK,
+  ACTION_CARDS,
+  CRUMB_DEMON,
+  UPGRADE,
+  TROPHIES,
+  SYNERGY,
+  ELEMENT_COMBAT,
+} as const;
+export type GameConfig = typeof GameConfig;

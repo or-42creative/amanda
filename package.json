@@ -1,0 +1,14 @@
+{
+  "name": "amanda",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Amanda — online real-time multiplayer auto-battler card game",
+  "scripts": {
+    "validate:data": "pnpm --filter @amanda/shared validate:data",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
