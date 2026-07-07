@@ -81,5 +81,16 @@ pnpm typecheck       # type-check every package
 
 1. ✅ **Foundation** — monorepo, JSON card schema, seed data
 2. ✅ **Engine** — headless deterministic combat sim + tests (4×8 arena, lanes, stacking, abilities)
-3. ⬜ **Client** — React + Pixi local playable single-player loop
+3. ✅ **Client** — React + Pixi local playable single-player loop
 4. ⬜ **Multiplayer** — drop the engine into a Colyseus room
+
+### Run the game (Step 3)
+
+```bash
+pnpm --filter @amanda/client dev   # open the printed http://localhost:5173
+```
+
+A full single-player match: draw cards, place them on your 4×4 board (click a
+slot; click the centre 👑 to set your King), watch the 3-phase timer
+(Build → Panic → Auto-Battle), then the PixiJS arena replays the deterministic
+battle and shows the result. Placeholder shapes now; art drops in later.

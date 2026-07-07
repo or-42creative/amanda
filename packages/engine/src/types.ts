@@ -102,10 +102,31 @@ export interface BattleState {
   nextUid: number;
 }
 
+/** Lightweight per-unit snapshot used for animated replay on the client. */
+export interface FrameUnit {
+  uid: string;
+  owner: Owner;
+  cardId: string;
+  col: number;
+  lanes: number[];
+  hp: number;
+  maxHp: number;
+  alive: boolean;
+  isKing: boolean;
+}
+
+/** A snapshot of the whole arena at one tick. */
+export interface BattleFrame {
+  tick: number;
+  units: FrameUnit[];
+}
+
 export interface BattleResult {
   winner: Owner | null;
   ticks: number;
   events: BattleEvent[];
   /** Final unit snapshot (useful for tests and post-battle UI). */
   finalUnits: Unit[];
+  /** Per-tick snapshots for animated replay (only when setup.recordFrames). */
+  frames: BattleFrame[];
 }

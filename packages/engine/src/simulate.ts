@@ -19,7 +19,7 @@ import {
   sharesLane,
 } from "./combat.js";
 import { buildBattle, createUnitFromCard, type BattleSetup } from "./setup.js";
-import type { BattleResult, BattleState, Unit } from "./types.js";
+import type { BattleFrame, BattleResult, BattleState, Unit } from "./types.js";
 
 const TPS = SIMULATION.ticksPerSecond;
 const DT = 1 / TPS;
@@ -75,6 +75,24 @@ export function runBattle(setup: BattleSetup): BattleResult {
   const state = buildBattle(setup);
   const catalog = setup.catalog;
   const totalTicks = SIMULATION.totalBattleTicks;
+  const frames: BattleFrame[] = [];
+
+  function captureFrame(): void {
+    frames.push({
+      tick: state.tick,
+      units: state.units.map((u) => ({
+        uid: u.uid,
+        owner: u.owner,
+        cardId: u.cardId,
+        col: u.col,
+        lanes: u.lanes,
+        hp: Math.max(0, Math.round(u.hp)),
+        maxHp: u.maxHp,
+        alive: u.alive,
+        isKing: u.isKing,
+      })),
+    });
+  }
 
   const spawnChild: BattleOps["spawnChild"] = (proto) => {
     const u: Unit = {
@@ -237,8 +255,10 @@ export function runBattle(setup: BattleSetup): BattleResult {
 
   // --- run ---
   runOnSpawn(state, ops);
+  if (setup.recordFrames) captureFrame();
   while (!state.ended && state.winner === null && state.tick < totalTicks) {
     step();
+    if (setup.recordFrames) captureFrame();
   }
   if (state.winner === null && !state.ended) resolveTimeout();
 
@@ -249,5 +269,6 @@ export function runBattle(setup: BattleSetup): BattleResult {
     ticks: state.tick,
     events: state.events,
     finalUnits: state.units,
+    frames,
   };
 }

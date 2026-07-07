@@ -27,6 +27,8 @@ export interface BattleSetup {
   b: BoardInput;
   seed: number;
   catalog: Map<string, Card>;
+  /** Capture a per-tick snapshot for animated client replay. */
+  recordFrames?: boolean;
 }
 
 /** Map a local board coordinate to the shared arena column. */
