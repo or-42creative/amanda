@@ -22,17 +22,44 @@ The 15-second battle is a **deterministic simulation**: the server runs it autho
 ```
 amanda/
 ├─ packages/
-│  └─ shared/            @amanda/shared — types, Zod schemas, config, data loader
+│  ├─ shared/            @amanda/shared — types, Zod schemas, config, data loader
+│  │  ├─ src/
+│  │  │  ├─ config.ts        ← ALL tunable rules (deck size, phases, King ×5, elements…)
+│  │  │  ├─ schemas/         ← common, elements, ability, card, series, actionCard
+│  │  │  ├─ loader.ts        ← parse + validate + cross-record integrity
+│  │  │  └─ index.ts
+│  │  └─ scripts/validate-data.ts
+│  └─ engine/            @amanda/engine — deterministic headless auto-battle sim
 │     ├─ src/
-│     │  ├─ config.ts        ← ALL tunable rules (deck size, phases, King ×5, elements…)
-│     │  ├─ schemas/         ← common, elements, ability, card, series, actionCard
-│     │  ├─ loader.ts        ← parse + validate + cross-record integrity
-│     │  └─ index.ts
-│     └─ scripts/validate-data.ts
+│     │  ├─ rng.ts           ← seeded PRNG (determinism)
+│     │  ├─ setup.ts         ← boards → 4×8 arena units (King ×5, mirroring, stacking)
+│     │  ├─ combat.ts        ← element multipliers + lane geometry
+│     │  ├─ abilities.ts     ← data-driven ability handler registry
+│     │  ├─ simulate.ts      ← fixed-tick loop → BattleResult + event log
+│     │  └─ types.ts
+│     ├─ test/               ← vitest: determinism + core mechanics
+│     └─ scripts/demo-battle.ts
 ├─ data/                 JSON-driven content
 │  ├─ series/            one file per monster series (01-dragons, 17-slimes seeded)
 │  └─ action-cards.json  13 action cards
-└─ (coming next) packages/engine · apps/client · apps/server
+└─ (coming next) apps/client · apps/server
+```
+
+### Engine capabilities (Step 2)
+
+The 4×8 lane arena, advancing/collision/trample movement, melee/ranged/sniper
+targeting, element multipliers, the King ×5 HP + King-death win condition, the
+Ground-Floor stacking reveal, and a data-driven ability registry. Implemented
+ability handlers so far: knockback, sideKnockback, trample, freezeOnHit,
+armorBreak, elementSteal, damageReflect, sacrifice→armor, delayedTransform,
+split/swarm-on-death, rootOnReveal, and the damageReduction / slow / attackSpeed
+auras. Remaining ability types are stubbed no-ops (added incrementally as
+content lands). Line-of-sight nuance for snipers and series-synergy activation
+are the next engine TODOs.
+
+```bash
+pnpm --filter @amanda/engine test   # run the deterministic-sim tests
+pnpm --filter @amanda/engine demo   # simulate a Dragons vs Slimes match
 ```
 
 ## Getting started
@@ -52,7 +79,7 @@ pnpm typecheck       # type-check every package
 
 ## Roadmap
 
-1. ✅ **Foundation** — monorepo, JSON card schema, seed data _(this step)_
-2. ⬜ **Engine** — headless deterministic combat sim + tests (4×8 arena, lanes, stacking, status effects)
+1. ✅ **Foundation** — monorepo, JSON card schema, seed data
+2. ✅ **Engine** — headless deterministic combat sim + tests (4×8 arena, lanes, stacking, abilities)
 3. ⬜ **Client** — React + Pixi local playable single-player loop
 4. ⬜ **Multiplayer** — drop the engine into a Colyseus room
