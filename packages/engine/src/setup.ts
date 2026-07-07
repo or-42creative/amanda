@@ -68,7 +68,7 @@ export function createUnitFromCard(
     activeElement: card.elements[0]!,
     maxHp,
     hp: maxHp,
-    power: card.stats.power,
+    power: p.isKing ? card.stats.power * KING.powerMultiplier : card.stats.power,
     attackSpeed: card.stats.attackSpeed,
     moveSpeed: p.isKing ? 0 : card.stats.moveSpeed, // King's Trap: rooted
     range: card.stats.range,

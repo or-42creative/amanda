@@ -97,8 +97,17 @@ slot; click the centre 👑 to set your King), watch the 3-phase timer
 (Build 2 min → Panic 30 s → Auto-Battle 15 s), then the PixiJS arena replays the
 deterministic battle and shows the result. Placeholder shapes now; art drops in later.
 
-Also in the client: richer cards (element icon, rarity, range/movement tags),
-a tap-**ℹ** card detail view (full stats, abilities, series synergy), a
-fog-of-war opponent board (front row in Build; front + sides + King in Panic;
-back Surprise Row hidden till battle), and battle animations (unit labels,
-attack pulses, floating damage numbers, death fades).
+Also in the client: a start screen (identity 🧑 vs 🤖) — the match begins only
+on **Start**, then a 3-2-1 countdown; **auto-draw** (a card is always in hand,
+refilled on place/discard); **glued placement** (placed cards stick — a future
+action card may free them); richer cards (element icon, rarity, range/movement
+tags); a tap-**ℹ** card detail view (full stats, abilities, series synergy);
+a **vertical facing layout** (opponent on top, you at the bottom, front rows
+meeting in the middle); fog of war (front row in Build; front + sides + King in
+Panic; back Surprise Row hidden till battle); a **pre-battle** step that fills
+empty slots with Crumb Demons then counts down; battle animations (unit labels,
+attack pulses, floating damage, death fades) and a **King-explosion board
+collapse** finale before the result; synthesised **sound effects** (mutable);
+and a layered animated background.
+
+King bonus: the card in the King slot gets **×5 HP and ×3 Power** (GDD + Or's rule).

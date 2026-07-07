@@ -20,9 +20,27 @@ body,
   margin: 0;
 }
 body {
-  background: radial-gradient(1200px 600px at 50% -10%, #16203a 0%, var(--bg) 60%), var(--bg);
   color: var(--text);
   font-family: "Segoe UI", "Assistant", system-ui, sans-serif;
+  background:
+    radial-gradient(900px 500px at 15% 0%, rgba(74, 163, 255, 0.14), transparent 60%),
+    radial-gradient(900px 500px at 85% 100%, rgba(255, 90, 90, 0.14), transparent 60%),
+    radial-gradient(1400px 700px at 50% -20%, #1a2747 0%, transparent 65%),
+    linear-gradient(180deg, #0c111d, #070a12);
+  background-attachment: fixed;
+}
+/* faint moving glow behind everything */
+.app::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  background: radial-gradient(500px 500px at 50% 50%, rgba(255, 176, 32, 0.05), transparent 70%);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: translate(-6%, -4%); }
+  to { transform: translate(6%, 4%); }
 }
 .app {
   height: 100%;
@@ -84,20 +102,22 @@ body {
   to { box-shadow: inset 0 0 80px 0 rgba(255, 90, 90, 0.22); }
 }
 
+/* Vertical facing layout: opponent on top, you at the bottom, fronts meeting. */
 .boards {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  padding: 14px;
+  gap: 6px;
+  padding: 10px;
   min-height: 0;
 }
 .side {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .side__label {
   font-weight: 700;
@@ -107,13 +127,26 @@ body {
 .side--enemy .side__label {
   color: #ff9a9a;
 }
-.side__hint {
-  font-size: 11px;
-  color: var(--muted);
+.side--me .side__label {
+  color: #9fd0ff;
 }
-.vs {
-  font-size: 26px;
-  opacity: 0.7;
+.midline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(70vw, 520px);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.midline::before,
+.midline::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  margin: 0 8px;
+  background: linear-gradient(90deg, transparent, #3a4a63, transparent);
 }
 
 .board {
@@ -121,15 +154,15 @@ body {
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
   gap: 6px;
-  width: clamp(210px, 42vh, 360px);
+  width: clamp(170px, 31vh, 300px);
   aspect-ratio: 1;
-  padding: 8px;
+  padding: 7px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
 }
 .board--compact {
-  width: clamp(180px, 34vh, 300px);
+  width: clamp(160px, 29vh, 280px);
 }
 
 .slot {
@@ -351,6 +384,97 @@ button:disabled {
 .result__card h1 { font-size: 44px; margin: 0 0 8px; }
 .result__card p { color: var(--muted); margin: 0 0 24px; }
 
+/* ---- mute button ---- */
+.mute {
+  padding: 6px 10px;
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+/* ---- intro / start screen ---- */
+.intro {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.intro__card {
+  text-align: center;
+  background: rgba(20, 26, 41, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 36px 48px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+.intro__card h1 {
+  margin: 0;
+  font-size: 52px;
+  letter-spacing: 2px;
+  background: linear-gradient(120deg, #ffb020, #ff5a5a, #4aa3ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.intro__tag { color: var(--muted); margin: 4px 0 24px; }
+.intro__hint { color: var(--muted); font-size: 12px; margin: 18px 0 0; }
+.versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin-bottom: 26px;
+}
+.who { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.who__avatar {
+  width: 78px;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--panel-2);
+}
+.who--me .who__avatar { border-color: #4aa3ff; box-shadow: 0 0 20px rgba(74, 163, 255, 0.4); }
+.who--enemy .who__avatar { border-color: #ff5a5a; box-shadow: 0 0 20px rgba(255, 90, 90, 0.4); }
+.who__name { font-weight: 700; }
+.versus__x { font-size: 24px; font-weight: 800; color: var(--accent); }
+.intro .btn-fight { margin: 0 auto; }
+
+/* ---- countdown / prebattle overlay ---- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(5, 8, 16, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 30;
+  pointer-events: none;
+}
+.overlay__count {
+  font-size: 120px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 176, 32, 0.7);
+  animation: countpop 1s ease-out infinite;
+}
+@keyframes countpop {
+  0% { transform: scale(1.3); opacity: 0.2; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.85; }
+}
+.overlay__label { font-size: 22px; font-weight: 800; color: var(--accent); }
+.overlay__mini { font-size: 14px; color: var(--muted); }
+.build { position: relative; }
+
 /* ---- card detail modal ---- */
 .modal-overlay {
   position: fixed;
@@ -445,9 +569,9 @@ button:disabled {
 
 /* ---- portrait / small screens ---- */
 @media (max-width: 760px) {
-  .boards { flex-direction: column; gap: 8px; }
-  .vs { display: none; }
-  .board { width: clamp(180px, 34vh, 260px); }
-  .board--compact { width: clamp(150px, 26vh, 220px); }
+  .board { width: clamp(150px, 27vh, 240px); }
+  .board--compact { width: clamp(140px, 25vh, 230px); }
   .modal__stats { grid-template-columns: repeat(3, 1fr); }
+  .hand { gap: 10px; padding: 8px 12px; }
+  .intro__card { padding: 28px 24px; }
 }

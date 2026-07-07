@@ -7,11 +7,14 @@ import {
   type Placement,
 } from "@amanda/engine";
 import { CATALOG, KING_CANDIDATES, starterDeck } from "../data/catalog";
+import { sfx } from "./sfx";
 
-export type Phase = "build" | "panic" | "battle" | "result";
+export type Phase = "intro" | "countdown" | "build" | "panic" | "prebattle" | "battle" | "result";
 
 /** Fixed seed → the same boards always produce the same battle (determinism). */
 const BATTLE_SEED = 20260707;
+const COUNTDOWN_SECONDS = 3;
+const PREBATTLE_SECONDS = 4;
 
 export const BOARD_SIZE = 4;
 export function isKingCell(x: number, y: number): boolean {
@@ -30,7 +33,6 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
-/** Non-King board cells (the 12 perimeter slots). */
 function perimeterCells(): Array<{ x: number; y: number }> {
   const cells: Array<{ x: number; y: number }> = [];
   for (let x = 0; x < BOARD_SIZE; x++)
@@ -42,20 +44,17 @@ function generateAiBoard(): BoardInput {
   const kingPool = KING_CANDIDATES.length ? KING_CANDIDATES : [...CATALOG.values()];
   const king = kingPool[Math.floor(Math.random() * kingPool.length)]!.id;
   const pool = shuffle(starterDeck().filter((id) => id !== king));
-
   const placements: Placement[] = [{ cardId: king, x: 1, y: 1, king: true }];
   const cells = shuffle(perimeterCells());
-  cells.slice(0, 6).forEach((c, i) =>
+  cells.slice(0, 7).forEach((c, i) =>
     placements.push({ cardId: pool[i % pool.length]!, x: c.x, y: c.y }),
   );
   for (const c of cells)
     if (!placements.some((p) => p.x === c.x && p.y === c.y))
       placements.push({ cardId: "crumb_demon", x: c.x, y: c.y });
-
   return { owner: "B", placements };
 }
 
-/** If the player never set a King, promote their strongest placed card. */
 function resolveKing(
   king: string | null,
   placements: Record<string, string>,
@@ -93,7 +92,6 @@ function buildPlayerBoard(state: GameState): BoardInput {
   return { owner: "A", placements: ps };
 }
 
-/** All mutable build-phase state, updated as one atomic unit (pure reducers). */
 interface GameState {
   deck: string[];
   hand: string | null;
@@ -104,6 +102,12 @@ interface GameState {
 
 function initialGameState(): GameState {
   return { deck: shuffle(starterDeck()), hand: null, discard: [], placements: {}, king: null };
+}
+
+/** Auto-draw: keep a card in hand whenever the deck has cards. */
+function drawIfEmpty(s: GameState): GameState {
+  if (s.hand !== null || s.deck.length === 0) return s;
+  return { ...s, hand: s.deck[0]!, deck: s.deck.slice(1) };
 }
 
 export interface BoardView {
@@ -131,25 +135,22 @@ export interface MatchApi {
   king: string | null;
   result: BattleResult | null;
   hasKing: boolean;
-  /** Opponent board (fog of war applied via revealOpponentCell/revealOpponentKing). */
   opponent: BoardView;
-  /** True if the opponent's cell at (x,y) is currently visible to the player. */
   revealOpponentCell: (x: number, y: number) => boolean;
   revealOpponentKing: boolean;
-  draw: () => void;
-  takeDiscard: () => void;
+  startMatch: () => void;
   discardHand: () => void;
+  takeDiscard: () => void;
   placeAt: (x: number, y: number) => void;
   placeKing: () => void;
-  pickUp: (x: number, y: number) => void;
-  startBattle: () => void;
+  toBattle: () => void;
   finishBattle: () => void;
   reset: () => void;
 }
 
 export function useMatch(): MatchApi {
-  const [phase, setPhase] = useState<Phase>("build");
-  const [timeLeft, setTimeLeft] = useState<number>(PHASES.build.seconds);
+  const [phase, setPhase] = useState<Phase>("intro");
+  const [timeLeft, setTimeLeft] = useState<number>(COUNTDOWN_SECONDS);
   const [gs, setGs] = useState<GameState>(initialGameState);
   const [result, setResult] = useState<BattleResult | null>(null);
 
@@ -158,51 +159,66 @@ export function useMatch(): MatchApi {
   const aiRef = useRef<BoardInput | null>(null);
   if (!aiRef.current) aiRef.current = generateAiBoard();
 
-  const draw = useCallback(() => {
-    setGs((s) =>
-      s.hand !== null || s.deck.length === 0
-        ? s
-        : { ...s, hand: s.deck[0]!, deck: s.deck.slice(1) },
-    );
-  }, []);
+  const placeAt = useCallback(
+    (x: number, y: number) => {
+      if (isKingCell(x, y)) return;
+      const key = cellKey(x, y);
+      let ok = false;
+      setGs((s) => {
+        if (s.hand === null || s.placements[key]) return s;
+        ok = true;
+        return drawIfEmpty({ ...s, placements: { ...s.placements, [key]: s.hand }, hand: null });
+      });
+      if (ok) sfx.play("place");
+    },
+    [],
+  );
 
-  const takeDiscard = useCallback(() => {
-    setGs((s) =>
-      s.hand !== null || s.discard.length === 0
-        ? s
-        : { ...s, hand: s.discard[s.discard.length - 1]!, discard: s.discard.slice(0, -1) },
-    );
+  const placeKing = useCallback(() => {
+    let ok = false;
+    setGs((s) => {
+      if (s.hand === null || s.king !== null) return s;
+      ok = true;
+      return drawIfEmpty({ ...s, king: s.hand, hand: null });
+    });
+    if (ok) sfx.play("place");
   }, []);
 
   const discardHand = useCallback(() => {
-    setGs((s) =>
-      s.hand === null ? s : { ...s, discard: [...s.discard, s.hand], hand: null },
-    );
-  }, []);
-
-  const placeAt = useCallback((x: number, y: number) => {
-    if (isKingCell(x, y)) return;
-    const key = cellKey(x, y);
-    setGs((s) =>
-      s.hand === null || s.placements[key]
-        ? s
-        : { ...s, placements: { ...s.placements, [key]: s.hand }, hand: null },
-    );
-  }, []);
-
-  const placeKing = useCallback(() => {
-    setGs((s) => (s.hand === null || s.king !== null ? s : { ...s, king: s.hand, hand: null }));
-  }, []);
-
-  const pickUp = useCallback((x: number, y: number) => {
-    const key = cellKey(x, y);
+    let ok = false;
     setGs((s) => {
-      if (s.hand !== null || !s.placements[key]) return s;
-      const rest = { ...s.placements };
-      const card = rest[key]!;
-      delete rest[key];
-      return { ...s, placements: rest, deck: [...s.deck, card] };
+      if (s.hand === null) return s;
+      ok = true;
+      return drawIfEmpty({ ...s, discard: [...s.discard, s.hand], hand: null });
     });
+    if (ok) sfx.play("discard");
+  }, []);
+
+  const takeDiscard = useCallback(() => {
+    let ok = false;
+    setGs((s) => {
+      if (s.discard.length === 0) return s;
+      ok = true;
+      const top = s.discard[s.discard.length - 1]!;
+      const discard = s.discard.slice(0, -1);
+      if (s.hand !== null) discard.push(s.hand); // swap current hand back onto the pile
+      return { ...s, hand: top, discard };
+    });
+    if (ok) sfx.play("draw");
+  }, []);
+
+  const enterPrebattle = useCallback(() => {
+    // Lock the board: auto-promote a King if needed and fill empty slots with Crumb Demons.
+    setGs((s) => {
+      const resolved = resolveKing(s.king, s.placements);
+      const placements = { ...resolved.placements };
+      for (const c of perimeterCells())
+        if (!placements[cellKey(c.x, c.y)]) placements[cellKey(c.x, c.y)] = "crumb_demon";
+      return { ...s, king: resolved.king, placements, hand: null };
+    });
+    sfx.play("crumbs");
+    setPhase("prebattle");
+    setTimeLeft(PREBATTLE_SECONDS);
   }, []);
 
   const startBattle = useCallback(() => {
@@ -214,43 +230,59 @@ export function useMatch(): MatchApi {
       recordFrames: true,
     });
     setResult(r);
+    sfx.play("go");
     setPhase("battle");
   }, []);
 
-  const finishBattle = useCallback(() => setPhase("result"), []);
+  const startMatch = useCallback(() => {
+    sfx.unlock();
+    sfx.play("click");
+    setPhase("countdown");
+    setTimeLeft(COUNTDOWN_SECONDS);
+  }, []);
+
+  const finishBattle = useCallback(() => {
+    const w = result?.winner;
+    sfx.play(w === "A" ? "win" : w === "B" ? "lose" : "beep");
+    setPhase("result");
+  }, [result]);
 
   const reset = useCallback(() => {
     aiRef.current = generateAiBoard();
     setGs(initialGameState());
     setResult(null);
-    setTimeLeft(PHASES.build.seconds);
-    setPhase("build");
+    setTimeLeft(COUNTDOWN_SECONDS);
+    setPhase("intro");
   }, []);
 
-  // Prep-phase countdown.
+  // Countdown ticker for the timed phases.
   useEffect(() => {
-    if (phase !== "build" && phase !== "panic") return;
+    if (!["countdown", "build", "panic", "prebattle"].includes(phase)) return;
     const id = setInterval(() => setTimeLeft((t) => Math.max(0, t - 0.1)), 100);
     return () => clearInterval(id);
   }, [phase]);
 
-  // Phase transitions when the timer hits zero.
+  // Phase transitions when a timer hits zero.
   useEffect(() => {
     if (timeLeft > 0) return;
-    if (phase === "build") {
+    if (phase === "countdown") {
+      setPhase("build");
+      setTimeLeft(PHASES.build.seconds);
+      setGs((s) => drawIfEmpty(s)); // first auto-draw
+    } else if (phase === "build") {
       setPhase("panic");
       setTimeLeft(PHASES.panic.seconds);
     } else if (phase === "panic") {
+      enterPrebattle();
+    } else if (phase === "prebattle") {
       startBattle();
     }
-  }, [timeLeft, phase, startBattle]);
+  }, [timeLeft, phase, enterPrebattle, startBattle]);
 
-  // Fog of war (GDD §4): build → only the opponent's front row (x=3) is visible;
-  // panic → front + sides + King revealed, back "Surprise Row" (x=0) stays hidden.
   const revealOpponentCell = useCallback(
     (x: number, _y: number): boolean => {
       if (phase === "build") return x === 3;
-      if (phase === "panic") return x >= 1;
+      if (phase === "panic" || phase === "prebattle") return x >= 1;
       return true;
     },
     [phase],
@@ -268,14 +300,13 @@ export function useMatch(): MatchApi {
     hasKing: gs.king !== null,
     opponent: boardInputToView(aiRef.current),
     revealOpponentCell,
-    revealOpponentKing: phase === "panic",
-    draw,
-    takeDiscard,
+    revealOpponentKing: phase === "panic" || phase === "prebattle",
+    startMatch,
     discardHand,
+    takeDiscard,
     placeAt,
     placeKing,
-    pickUp,
-    startBattle,
+    toBattle: enterPrebattle,
     finishBattle,
     reset,
   };

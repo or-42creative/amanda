@@ -32,6 +32,8 @@ export const ARENA = {
 export const KING = {
   /** The card in the King slot gets ×5 HP. */
   hpMultiplier: 5,
+  /** The King also hits ×3 harder (Power/damage multiplier). */
+  powerMultiplier: 3,
   /** The King slot is permanently static (King's Trap). */
   static: true,
   /** Per account level, add this flat HP to the King slot base (GDD §7). */

@@ -4,9 +4,12 @@ import { BOARD_SIZE, cellKey, isKingCell } from "../game/useMatch";
 interface Props {
   placements: Record<string, string>;
   king: string | null;
-  /** Opponent boards are mirrored so their front row (x=3) faces the player. */
-  mirrored?: boolean;
-  /** Fog: return false to hide a cell as face-down. Omit = everything visible. */
+  /**
+   * Which way the board's front row (depth x=3) points. "up" = front at the top
+   * (the player, at the bottom of the screen); "down" = front at the bottom
+   * (the opponent, at the top of the screen). The two thus face each other.
+   */
+  facing: "up" | "down";
   reveal?: (x: number, y: number) => boolean;
   revealKing?: boolean;
   interactive?: boolean;
@@ -20,7 +23,7 @@ interface Props {
 export function BoardGrid({
   placements,
   king,
-  mirrored = false,
+  facing,
   reveal,
   revealKing = true,
   interactive = false,
@@ -31,18 +34,24 @@ export function BoardGrid({
   compact = false,
 }: Props) {
   const cells: Array<{ x: number; y: number }> = [];
-  for (let y = 0; y < BOARD_SIZE; y++)
-    for (let x = 0; x < BOARD_SIZE; x++) if (!isKingCell(x, y)) cells.push({ x, y });
+  for (let x = 0; x < BOARD_SIZE; x++)
+    for (let y = 0; y < BOARD_SIZE; y++) if (!isKingCell(x, y)) cells.push({ x, y });
 
   const size = compact ? "small" : "medium";
-  const gridColumn = (x: number) => (mirrored ? BOARD_SIZE - x : x + 1);
+  // Depth (x) runs vertically; lanes (y) run horizontally so both boards' lanes align.
+  const rowForX = (x: number) => (facing === "up" ? BOARD_SIZE - x : x + 1);
+  const colForY = (y: number) => y + 1;
 
   return (
     <div className={`board${compact ? " board--compact" : ""}`} dir="ltr">
       <div
         className={`slot slot--king${king ? " slot--filled" : ""}`}
         style={{ gridColumn: "2 / 4", gridRow: "2 / 4" }}
-        onClick={() => interactive && !king && onKingClick?.()}
+        onClick={() => {
+          if (!interactive) return;
+          if (king) onCardInfo?.(king);
+          else onKingClick?.();
+        }}
       >
         {!revealKing ? (
           <CardBack size="medium" />
@@ -65,18 +74,15 @@ export function BoardGrid({
           <div
             key={key}
             className={`slot${occ && shown ? " slot--filled" : ""}`}
-            style={{ gridColumn: gridColumn(x), gridRow: y + 1 }}
+            style={{ gridColumn: colForY(y), gridRow: rowForX(x) }}
             onClick={() => {
               if (!interactive) return;
-              onCellClick?.(x, y);
+              if (occ) onCardInfo?.(occ);
+              else onCellClick?.(x, y);
             }}
           >
             {!shown ? (
-              occ ? (
-                <CardBack size={size} />
-              ) : (
-                <CardBack size={size} />
-              )
+              <CardBack size={size} />
             ) : occ ? (
               <CardView
                 cardId={occ}
