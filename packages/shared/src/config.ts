@@ -42,8 +42,8 @@ export const KING = {
 
 /** Match phase timeline in seconds (GDD §4). Total ≈ 85s. */
 export const PHASES = {
-  build: { seconds: 50, label: { he: "טירוף הבנייה", en: "Build Frenzy" } },
-  panic: { seconds: 10, label: { he: "שניות הפאניקה", en: "Panic Seconds" } },
+  build: { seconds: 120, label: { he: "טירוף הבנייה", en: "Build Frenzy" } },
+  panic: { seconds: 30, label: { he: "שניות הפאניקה", en: "Panic Seconds" } },
   battle: { seconds: 15, label: { he: "הקרב האוטומטי", en: "Auto-Battle" } },
 } as const;
 

@@ -85,6 +85,7 @@ export function createUnitFromCard(
     damageTakenMult: 1,
     attackSpeedMult: 1,
     moveSlowMult: 1,
+    auraArmor: 0,
     abilities: card.abilities,
     alive: true,
     below: p.below ? { cardId: p.below } : null,

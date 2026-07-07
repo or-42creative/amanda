@@ -1,9 +1,19 @@
 import { CRUMB_DEMON, parseSeries, type Card, type Series } from "@amanda/shared";
-import dragonsJson from "../../../../data/series/01-dragons.json";
-import slimesJson from "../../../../data/series/17-slimes.json";
 
-/** All series shipped so far (Dragons + Slimes). */
-export const SERIES: Series[] = [parseSeries(dragonsJson), parseSeries(slimesJson)];
+/**
+ * Auto-load every series file under /data/series. Dropping a new NN-name.json
+ * there makes its cards appear in the game with no code change.
+ */
+const seriesModules = import.meta.glob("../../../../data/series/*.json", {
+  eager: true,
+}) as Record<string, { default: unknown }>;
+
+export const SERIES: Series[] = Object.keys(seriesModules)
+  .sort()
+  .map((path) => parseSeries(seriesModules[path]!.default));
+
+/** All series indexed by id, for lookups (synergy, detail view). */
+export const SERIES_BY_ID: Map<string, Series> = new Map(SERIES.map((s) => [s.id, s]));
 
 /** Every playable monster card, keyed by id. */
 export const CATALOG: Map<string, Card> = new Map();

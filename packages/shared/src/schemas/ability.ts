@@ -39,8 +39,12 @@ export const ABILITY_TYPES = [
   "damageReflect", // return a % of damage taken to the attacker
   "armorGain", // gain flat armor (blocks damage instances)
   "armorBreak", // destroy the target's armor on hit
+  "armorAura", // grant flat armor to allies in range while alive
   "damageShareAdjacent", // absorb a % of damage aimed at neighbors
   "damageReductionAura", // reduce incoming damage for allies in range
+  // --- sustain ---
+  "regen", // heal self over time
+  "healAura", // heal allies in range over time
   // --- offensive / control ---
   "aoeRowAttack", // hit across multiple lanes at once
   "lineDenialDot", // leave a lingering damage-over-time zone in the lane

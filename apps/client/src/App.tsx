@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { PHASES } from "@amanda/shared";
 import { useMatch } from "./game/useMatch";
-import { Board } from "./components/Board";
+import { BoardGrid } from "./components/BoardGrid";
 import { CardView } from "./components/CardView";
+import { CardDetailModal } from "./components/CardDetailModal";
 import { Arena } from "./components/Arena";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -14,7 +16,10 @@ const PHASE_LABEL: Record<string, string> = {
 
 export default function App() {
   const m = useMatch();
+  const [detail, setDetail] = useState<string | null>(null);
+  const openInfo = (cardId: string) => setDetail(cardId);
 
+  const building = m.phase === "build" || m.phase === "panic";
   const winnerText =
     m.result?.winner === "A"
       ? "🎉 ניצחת!"
@@ -27,24 +32,50 @@ export default function App() {
       <header className="topbar">
         <div className="topbar__title">אמנדה — המשחקון</div>
         <div className={`topbar__phase phase--${m.phase}`}>{PHASE_LABEL[m.phase]}</div>
-        {(m.phase === "build" || m.phase === "panic") && (
-          <div className="topbar__timer">⏱️ {Math.ceil(m.timeLeft)}s</div>
-        )}
+        {building && <div className="topbar__timer">⏱️ {Math.ceil(m.timeLeft)}s</div>}
       </header>
 
-      {(m.phase === "build" || m.phase === "panic") && (
-        <main className="build">
-          <section className="build__board">
-            <Board m={m} />
-            <p className="opponent-note">
-              {m.phase === "panic" ? "🚨 היריב נחשף! התאמות אחרונות" : "🕵️ היריב בונה בסתר…"}
-            </p>
-          </section>
+      {building && (
+        <main className={`build${m.phase === "panic" ? " build--panic" : ""}`}>
+          <div className="boards">
+            <section className="side side--enemy">
+              <div className="side__label">
+                {m.phase === "panic" ? "🚨 היריב — נחשף!" : "🕵️ היריב — ערפל קרב"}
+              </div>
+              <BoardGrid
+                placements={m.opponent.placements}
+                king={m.opponent.king}
+                mirrored
+                compact
+                reveal={m.revealOpponentCell}
+                revealKing={m.revealOpponentKing}
+                onCardInfo={openInfo}
+              />
+              <div className="side__hint">
+                {m.phase === "panic" ? "השורה האחורית עדיין חסויה" : "רואים רק את השורה הקדמית"}
+              </div>
+            </section>
+
+            <div className="vs">⚔️</div>
+
+            <section className="side side--me">
+              <div className="side__label">👤 הלוח שלך · חזית ←</div>
+              <BoardGrid
+                placements={m.placements}
+                king={m.king}
+                interactive
+                handActive={m.hand !== null}
+                onCellClick={(x, y) => (m.placements[`${x}-${y}`] ? m.pickUp(x, y) : m.placeAt(x, y))}
+                onKingClick={m.placeKing}
+                onCardInfo={openInfo}
+              />
+            </section>
+          </div>
 
           <aside className="hand">
             <div className="hand__current">
               {m.hand ? (
-                <CardView cardId={m.hand} />
+                <CardView cardId={m.hand} size="large" onClick={() => openInfo(m.hand!)} onInfo={() => openInfo(m.hand!)} />
               ) : (
                 <div className="hand__empty">אין קלף ביד</div>
               )}
@@ -63,13 +94,8 @@ export default function App() {
             </div>
 
             <p className="hand__hint">
-              לחצו על משבצת ריקה כדי להניח את הקלף.
-              <br />
-              לחצו על משבצת <b>👑 המלך</b> כדי למנות מלך.
-              <br />
-              לחיצה על קלף שהונח מחזירה אותו לחפיסה.
+              משבצת ריקה = הנחה · לחיצה על קלף מונח = החזרה לחפיסה · <b>ℹ</b> = פרטים · 👑 = מלך
             </p>
-
             {!m.hasKing && <p className="warn">⚠️ עדיין לא מיניתם מלך!</p>}
 
             <button className="btn-fight" onClick={m.startBattle}>
@@ -111,6 +137,8 @@ export default function App() {
           </div>
         </main>
       )}
+
+      {detail && <CardDetailModal cardId={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }

@@ -49,5 +49,5 @@ export function computeDamage(
 ): number {
   const withElement = rawPower * elementMultiplier(attackerElement, target.activeElement);
   const afterReduction = withElement * target.damageTakenMult;
-  return Math.max(0, Math.floor(afterReduction) - target.armor);
+  return Math.max(0, Math.floor(afterReduction) - target.armor - target.auraArmor);
 }

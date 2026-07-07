@@ -106,6 +106,21 @@ function initialGameState(): GameState {
   return { deck: shuffle(starterDeck()), hand: null, discard: [], placements: {}, king: null };
 }
 
+export interface BoardView {
+  placements: Record<string, string>;
+  king: string | null;
+}
+
+function boardInputToView(b: BoardInput): BoardView {
+  const placements: Record<string, string> = {};
+  let king: string | null = null;
+  for (const p of b.placements) {
+    if (p.king) king = p.cardId;
+    else placements[cellKey(p.x, p.y)] = p.cardId;
+  }
+  return { placements, king };
+}
+
 export interface MatchApi {
   phase: Phase;
   timeLeft: number;
@@ -116,6 +131,11 @@ export interface MatchApi {
   king: string | null;
   result: BattleResult | null;
   hasKing: boolean;
+  /** Opponent board (fog of war applied via revealOpponentCell/revealOpponentKing). */
+  opponent: BoardView;
+  /** True if the opponent's cell at (x,y) is currently visible to the player. */
+  revealOpponentCell: (x: number, y: number) => boolean;
+  revealOpponentKing: boolean;
   draw: () => void;
   takeDiscard: () => void;
   discardHand: () => void;
@@ -225,6 +245,17 @@ export function useMatch(): MatchApi {
     }
   }, [timeLeft, phase, startBattle]);
 
+  // Fog of war (GDD §4): build → only the opponent's front row (x=3) is visible;
+  // panic → front + sides + King revealed, back "Surprise Row" (x=0) stays hidden.
+  const revealOpponentCell = useCallback(
+    (x: number, _y: number): boolean => {
+      if (phase === "build") return x === 3;
+      if (phase === "panic") return x >= 1;
+      return true;
+    },
+    [phase],
+  );
+
   return {
     phase,
     timeLeft,
@@ -235,6 +266,9 @@ export function useMatch(): MatchApi {
     king: gs.king,
     result,
     hasKing: gs.king !== null,
+    opponent: boardInputToView(aiRef.current),
+    revealOpponentCell,
+    revealOpponentKing: phase === "panic",
     draw,
     takeDiscard,
     discardHand,

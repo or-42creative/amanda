@@ -40,7 +40,9 @@ amanda/
 │     ├─ test/               ← vitest: determinism + core mechanics
 │     └─ scripts/demo-battle.ts
 ├─ data/                 JSON-driven content
-│  ├─ series/            one file per monster series (01-dragons, 17-slimes seeded)
+│  ├─ series/            one file per monster series (5 seeded: dragons, giants,
+│  │                     insects, plants, slimes = 50 cards). Drop in NN-name.json
+│  │                     and the client auto-loads it — no code change.
 │  └─ action-cards.json  13 action cards
 └─ (coming next) apps/client · apps/server
 ```
@@ -92,5 +94,11 @@ pnpm --filter @amanda/client dev   # open the printed http://localhost:5173
 
 A full single-player match: draw cards, place them on your 4×4 board (click a
 slot; click the centre 👑 to set your King), watch the 3-phase timer
-(Build → Panic → Auto-Battle), then the PixiJS arena replays the deterministic
-battle and shows the result. Placeholder shapes now; art drops in later.
+(Build 2 min → Panic 30 s → Auto-Battle 15 s), then the PixiJS arena replays the
+deterministic battle and shows the result. Placeholder shapes now; art drops in later.
+
+Also in the client: richer cards (element icon, rarity, range/movement tags),
+a tap-**ℹ** card detail view (full stats, abilities, series synergy), a
+fog-of-war opponent board (front row in Build; front + sides + King in Panic;
+back Surprise Row hidden till battle), and battle animations (unit labels,
+attack pulses, floating damage numbers, death fades).

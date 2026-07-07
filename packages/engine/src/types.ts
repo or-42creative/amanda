@@ -46,10 +46,12 @@ export interface Unit {
   /** Cannot be pushed by knockback. */
   knockbackImmune: boolean;
 
-  // --- per-tick aura-derived multipliers (recomputed every tick) ---
+  // --- per-tick aura-derived values (recomputed every tick) ---
   damageTakenMult: number;
   attackSpeedMult: number;
   moveSlowMult: number;
+  /** Flat armor granted by allied auras this tick (on top of `armor`). */
+  auraArmor: number;
 
   abilities: Ability[];
   alive: boolean;

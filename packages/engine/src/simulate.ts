@@ -121,6 +121,7 @@ export function runBattle(setup: BattleSetup): BattleResult {
       damageTakenMult: 1,
       attackSpeedMult: 1,
       moveSlowMult: 1,
+      auraArmor: 0,
       abilities: [],
       alive: true,
       below: null,

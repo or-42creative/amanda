@@ -48,6 +48,7 @@ export function runAuras(state: BattleState): void {
     u.damageTakenMult = 1;
     u.attackSpeedMult = 1;
     u.moveSlowMult = 1;
+    u.auraArmor = 0;
   }
   for (const src of state.units) {
     if (!src.alive) continue;
@@ -69,8 +70,24 @@ export function runAuras(state: BattleState): void {
             if (enemy.alive && enemy.owner !== src.owner && sharesLane(enemy, src))
               enemy.moveSlowMult *= 1 - pct / 100;
           break;
+        case "armorAura":
+          for (const ally of state.units)
+            if (ally.alive && ally.owner === src.owner)
+              ally.auraArmor += num(ab.params.armor, 100);
+          break;
+        case "healAura":
+          for (const ally of state.units)
+            if (ally.alive && ally.owner === src.owner && ally.hp < ally.maxHp)
+              ally.hp = Math.min(ally.maxHp, ally.hp + num(ab.params.hpPerSecond, 50) / TPS);
+          break;
         default:
           break;
+      }
+    }
+    // Self-sustain (regen) also recomputed per tick.
+    for (const ab of src.abilities) {
+      if (ab.trigger === "passive" && ab.type === "regen" && src.hp < src.maxHp) {
+        src.hp = Math.min(src.maxHp, src.hp + num(ab.params.hpPerSecond, 40) / TPS);
       }
     }
   }
