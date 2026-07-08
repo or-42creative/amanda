@@ -91,6 +91,47 @@ export function runAuras(state: BattleState): void {
       }
     }
   }
+
+  // Series synergies: a bonus aura for a family once enough of them are alive.
+  if (state.synergies.length > 0) {
+    const counts: Record<Owner, Record<string, number>> = { A: {}, B: {} };
+    for (const u of state.units)
+      if (u.alive && u.seriesId)
+        counts[u.owner][u.seriesId] = (counts[u.owner][u.seriesId] ?? 0) + 1;
+
+    for (const syn of state.synergies) {
+      for (const owner of ["A", "B"] as const) {
+        if ((counts[owner][syn.seriesId] ?? 0) < syn.threshold) continue;
+        const pct = num(syn.ability.params.pct);
+        const members = state.units.filter(
+          (u) => u.alive && u.owner === owner && u.seriesId === syn.seriesId,
+        );
+        switch (syn.ability.type) {
+          case "damageReductionAura":
+            for (const m of members) m.damageTakenMult *= 1 - pct / 100;
+            break;
+          case "attackSpeedAura":
+            for (const m of members) m.attackSpeedMult += pct / 100;
+            break;
+          case "armorAura":
+            for (const m of members) m.auraArmor += num(syn.ability.params.armor, 120);
+            break;
+          case "healAura":
+            for (const m of members)
+              if (m.hp < m.maxHp)
+                m.hp = Math.min(m.maxHp, m.hp + num(syn.ability.params.hpPerSecond, 40) / TPS);
+            break;
+          case "slowAura":
+            for (const e of state.units)
+              if (e.alive && e.owner !== owner && members.some((m) => sharesLane(e, m)))
+                e.moveSlowMult *= 1 - pct / 100;
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
 }
 
 /** One-time effects that fire when the battle begins. */

@@ -23,6 +23,13 @@ export const SERIES: Series[] = Object.keys(seriesModules)
 /** All series indexed by id, for lookups (synergy, detail view). */
 export const SERIES_BY_ID: Map<string, Series> = new Map(SERIES.map((s) => [s.id, s]));
 
+/** Series synergies passed to the battle engine (activate at 3 same-series cards). */
+export const SYNERGIES = SERIES.map((s) => ({
+  seriesId: s.id,
+  threshold: s.synergy.threshold,
+  ability: s.synergy.ability,
+}));
+
 /** Every playable monster card, keyed by id. */
 export const CATALOG: Map<string, Card> = new Map();
 for (const s of SERIES) for (const c of s.cards) CATALOG.set(c.id, c);

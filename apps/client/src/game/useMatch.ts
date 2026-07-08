@@ -14,6 +14,7 @@ import {
   CATALOG,
   KING_CANDIDATES,
   SUPPORTED_ACTIONS,
+  SYNERGIES,
   cardPool,
   isPassiveAction,
 } from "../data/catalog";
@@ -310,6 +311,7 @@ export function useMatch(): MatchApi {
     const r = runBattle({
       seed: BATTLE_SEED,
       catalog: CATALOG,
+      synergies: SYNERGIES,
       a: buildPlayerBoard(gsRef.current, modsRef.current),
       b: aiFull,
       recordFrames: true,

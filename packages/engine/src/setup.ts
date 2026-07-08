@@ -1,6 +1,6 @@
 import { BOARD, KING, type Card } from "@amanda/shared";
 import { createRng } from "./rng.js";
-import type { BattleState, Owner, Unit } from "./types.js";
+import type { BattleState, Owner, SynergyDef, Unit } from "./types.js";
 
 /** Optional stat modifier applied to a placed card (e.g. from Action Cards). */
 export interface PlacementBuff {
@@ -36,6 +36,8 @@ export interface BattleSetup {
   b: BoardInput;
   seed: number;
   catalog: Map<string, Card>;
+  /** Series synergies to apply (activate at their threshold of same-series units). */
+  synergies?: SynergyDef[];
   /** Capture a per-tick snapshot for animated client replay. */
   recordFrames?: boolean;
 }
@@ -75,6 +77,7 @@ export function createUnitFromCard(
   return {
     uid: `u${state.nextUid++}`,
     cardId: card.id,
+    seriesId: card.seriesId,
     owner,
     name: card.name,
     elements: card.elements,
@@ -143,6 +146,7 @@ export function buildBattle(setup: BattleSetup): BattleState {
     winner: null,
     ended: false,
     nextUid: 0,
+    synergies: setup.synergies ?? [],
   };
 
   for (const board of [setup.a, setup.b]) {

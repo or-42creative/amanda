@@ -301,29 +301,40 @@ body {
   color: var(--muted);
 }
 .action-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: stretch;
   border-radius: 999px;
   border: 1px solid var(--accent);
   background: linear-gradient(160deg, #2a2436, #1b2436);
+  overflow: hidden;
+}
+.action-chip--passive { border-color: #6fbf3b; }
+.action-chip--used-state { opacity: 0.55; }
+.action-chip__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   font-size: 13px;
   font-weight: 700;
+  color: var(--text);
 }
+.action-chip__main:disabled { cursor: default; opacity: 1; }
 .action-chip__icon { font-size: 15px; }
-.action-chip:disabled {
-  cursor: default;
-}
-.action-chip--passive {
-  border-color: #6fbf3b;
-  opacity: 0.95;
-}
-.action-chip:disabled:not(.action-chip--passive) {
-  opacity: 0.5;
-  border-color: var(--line);
-}
 .action-chip__used { font-size: 12px; }
+.action-chip__info {
+  border: none;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--muted);
+  padding: 0 10px;
+  font-weight: 800;
+  font-size: 12px;
+}
+.action-chip__info:hover { background: var(--accent); color: #101010; }
 .actions__empty { font-size: 12px; color: var(--muted); font-style: italic; }
 
 /* an action card sitting in the hand (drawn, not yet taken) */

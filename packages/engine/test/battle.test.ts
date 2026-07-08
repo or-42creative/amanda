@@ -105,6 +105,21 @@ describe("King bonus", () => {
   });
 });
 
+describe("no draws", () => {
+  it("a timeout is always broken by a tiebreak (never null)", () => {
+    // Two identical, harmless Kings → nobody dies → timeout → must still pick a winner.
+    const king = testCard({ id: "peace_king", hp: 100, power: 0, moveSpeed: 0 });
+    const setup: BattleSetup = {
+      seed: 5,
+      catalog: catalogOf(king),
+      a: { owner: "A", placements: [{ cardId: "peace_king", x: 1, y: 1, king: true }] },
+      b: { owner: "B", placements: [{ cardId: "peace_king", x: 1, y: 1, king: true }] },
+    };
+    const result = runBattle(setup);
+    expect(result.winner === "A" || result.winner === "B").toBe(true);
+  });
+});
+
 describe("determinism", () => {
   it("same setup + seed produces a byte-identical event log", () => {
     const makeSetup = (): BattleSetup => {

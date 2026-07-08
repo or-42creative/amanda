@@ -19,7 +19,7 @@ import {
   sharesLane,
 } from "./combat.js";
 import { buildBattle, createUnitFromCard, type BattleSetup } from "./setup.js";
-import type { BattleFrame, BattleResult, BattleState, Unit } from "./types.js";
+import type { BattleFrame, BattleResult, BattleState, Owner, Unit } from "./types.js";
 
 const TPS = SIMULATION.ticksPerSecond;
 const DT = 1 / TPS;
@@ -99,6 +99,7 @@ export function runBattle(setup: BattleSetup): BattleResult {
     const u: Unit = {
       uid: `u${state.nextUid++}`,
       cardId: "__spawn__",
+      seriesId: "",
       owner: proto.owner,
       name: proto.name,
       elements: [proto.element],
@@ -246,12 +247,29 @@ export function runBattle(setup: BattleSetup): BattleResult {
   }
 
   function resolveTimeout(): void {
-    // No King destroyed within the time limit → higher King HP fraction wins.
-    const kA = state.units.find((u) => u.isKing && u.owner === "A");
-    const kB = state.units.find((u) => u.isKing && u.owner === "B");
-    const fa = kA && kA.alive ? kA.hp / kA.maxHp : 0;
-    const fb = kB && kB.alive ? kB.hp / kB.maxHp : 0;
-    state.winner = fa > fb ? "A" : fb > fa ? "B" : null;
+    // No King destroyed within the time limit → decide by a tiebreak chain so a
+    // match is NEVER a draw.
+    const kingFrac = (owner: Owner): number => {
+      const k = state.units.find((u) => u.isKing && u.owner === owner);
+      return k && k.alive ? k.hp / k.maxHp : 0;
+    };
+    const totalHp = (owner: Owner): number =>
+      state.units.reduce((s, u) => (u.alive && u.owner === owner ? s + u.hp : s), 0);
+    const aliveCount = (owner: Owner): number =>
+      state.units.reduce((n, u) => (u.alive && u.owner === owner ? n + 1 : n), 0);
+
+    const tiebreaks = [kingFrac, totalHp, aliveCount];
+    for (const metric of tiebreaks) {
+      const a = metric("A");
+      const b = metric("B");
+      if (a !== b) {
+        state.winner = a > b ? "A" : "B";
+        state.ended = true;
+        return;
+      }
+    }
+    // Perfectly even → a deterministic coin flip (seeded), still never a draw.
+    state.winner = state.rng.next() < 0.5 ? "A" : "B";
     state.ended = true;
   }
 

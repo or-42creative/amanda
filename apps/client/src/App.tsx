@@ -6,6 +6,7 @@ import { ACTIONS } from "./data/catalog";
 import { BoardGrid } from "./components/BoardGrid";
 import { CardView } from "./components/CardView";
 import { CardDetailModal } from "./components/CardDetailModal";
+import { ActionDetailModal } from "./components/ActionDetailModal";
 import { Arena } from "./components/Arena";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -30,6 +31,7 @@ const PHASE_LABEL: Record<string, string> = {
 export default function App() {
   const m = useMatch();
   const [detail, setDetail] = useState<string | null>(null);
+  const [actionDetail, setActionDetail] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const openInfo = (cardId: string) => setDetail(cardId);
 
@@ -146,19 +148,26 @@ export default function App() {
               {m.actionBar.map((a) => {
                 const card = ACTIONS.get(a.id);
                 return (
-                  <button
-                    key={a.id}
-                    className={`action-chip${a.passive ? " action-chip--passive" : ""}`}
-                    disabled={a.passive || a.used}
-                    title={card?.description.he}
-                    onClick={() => m.activateAction(a.id)}
-                  >
-                    <span className="action-chip__icon">{ACTION_ICON[a.id] ?? "🎴"}</span>
-                    <span className="action-chip__name">{card?.name.he}</span>
-                    <span className="action-chip__used">
-                      {a.passive ? "♾️" : a.used ? "✔" : "▶"}
-                    </span>
-                  </button>
+                  <div key={a.id} className={`action-chip${a.passive ? " action-chip--passive" : ""}${a.used ? " action-chip--used-state" : ""}`}>
+                    <button
+                      className="action-chip__main"
+                      disabled={a.passive || a.used}
+                      onClick={() => m.activateAction(a.id)}
+                    >
+                      <span className="action-chip__icon">{ACTION_ICON[a.id] ?? "🎴"}</span>
+                      <span className="action-chip__name">{card?.name.he}</span>
+                      <span className="action-chip__used">
+                        {a.passive ? "♾️" : a.used ? "✔" : "▶"}
+                      </span>
+                    </button>
+                    <button
+                      className="action-chip__info"
+                      title="הסבר"
+                      onClick={() => setActionDetail(a.id)}
+                    >
+                      ℹ
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -172,12 +181,12 @@ export default function App() {
                 ) : m.handIsAction ? (
                   <button
                     className="action-hand"
-                    title={ACTIONS.get(m.hand)?.description.he}
-                    onClick={() => {}}
+                    title="הסבר על הקלף"
+                    onClick={() => setActionDetail(m.hand!)}
                   >
                     <span className="action-hand__icon">{ACTION_ICON[m.hand] ?? "🎴"}</span>
                     <span className="action-hand__name">{ACTIONS.get(m.hand)?.name.he}</span>
-                    <span className="action-hand__tag">קלף פעולה</span>
+                    <span className="action-hand__tag">קלף פעולה · ℹ הסבר</span>
                   </button>
                 ) : (
                   <CardView cardId={m.hand} size="large" onClick={() => openInfo(m.hand!)} onInfo={() => openInfo(m.hand!)} />
@@ -262,6 +271,9 @@ export default function App() {
       )}
 
       {detail && <CardDetailModal cardId={detail} onClose={() => setDetail(null)} />}
+      {actionDetail && (
+        <ActionDetailModal actionId={actionDetail} onClose={() => setActionDetail(null)} />
+      )}
     </div>
   );
 }

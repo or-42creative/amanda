@@ -4,10 +4,21 @@ import type { Rng } from "./rng.js";
 /** Which side of the arena a unit belongs to. */
 export type Owner = "A" | "B";
 
+/**
+ * A series synergy passed into the battle: when a player has `threshold`+ alive
+ * units of `seriesId`, `ability` (an aura) applies to those units.
+ */
+export interface SynergyDef {
+  seriesId: string;
+  threshold: number;
+  ability: Ability;
+}
+
 /** A live combatant in the arena. Positions use the 4×8 arena coordinate space. */
 export interface Unit {
   uid: string;
   cardId: string;
+  seriesId: string;
   owner: Owner;
   name: LocalizedString;
   elements: Element[];
@@ -102,6 +113,7 @@ export interface BattleState {
   winner: Owner | null;
   ended: boolean;
   nextUid: number;
+  synergies: SynergyDef[];
 }
 
 /** Lightweight per-unit snapshot used for animated replay on the client. */

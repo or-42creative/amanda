@@ -112,6 +112,11 @@ and a layered animated background.
 
 King bonus: the card in the King slot gets **×3 HP and ×3 Power** (Or's tuned rule).
 
+**Series synergy** activates at **3** same-family cards on a board (passive aura for
+that family — e.g. Dragon Scales, Photosynthesis). Tap **ℹ** on any action card for a
+plain explanation of what it does. A match **never ends in a draw** — a timeout is
+broken by King HP → total board HP → unit count → a deterministic coin flip.
+
 Match deck is **24 monster cards + 5 Action Cards** shuffled together (a deck-builder
 screen comes later). **Action Cards are drawn during play**: when one comes up you
 choose to **take it** into your 3-slot action bar (or discard it). Some are **active**
