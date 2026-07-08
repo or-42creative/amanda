@@ -17,6 +17,7 @@ import {
   SYNERGIES,
   cardPool,
   isPassiveAction,
+  isTargetedAction,
 } from "../data/catalog";
 import { sfx } from "./sfx";
 
@@ -26,6 +27,7 @@ const BATTLE_SEED = 20260707;
 const COUNTDOWN_SECONDS = 3;
 const PREBATTLE_SECONDS = 4;
 const XRAY_MS = 6000;
+const KING_KEY = "king";
 
 export const BOARD_SIZE = 4;
 export function isKingCell(x: number, y: number): boolean {
@@ -50,7 +52,7 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
-/** 24 monster cards + a handful of action cards, all shuffled together. */
+/** 18 monster cards + 4 action cards (GDD), all shuffled together. */
 function matchDeck(): string[] {
   const monsters = shuffle(cardPool()).slice(0, DECK.size);
   const actions = shuffle(SUPPORTED_ACTIONS).slice(0, ACTION_DECK_COUNT);
@@ -74,7 +76,6 @@ function generateAiPlan(): Placement[] {
   return [...reals, { cardId: king, x: 1, y: 1, king: true }];
 }
 
-/** Fill any empty perimeter slot with Crumb Demons (fallback filler). */
 function fillCrumbs(placements: Placement[]): Placement[] {
   const out = [...placements];
   for (const c of perimeterCells())
@@ -107,27 +108,36 @@ function resolveKing(
   return { king: "crumb_demon", placements };
 }
 
-interface BattleMods {
-  powerBuff: number;
-  kingBoost: boolean;
+export interface BattleMods {
+  /** Flat +power added to every non-crumb card you placed (Energy Boost). */
+  boardPowerAdd: number;
+  /** Cells (cellKey or "king") upgraded ×1.5 by Full Refuel. */
+  boostedCells: Record<string, true>;
+}
+
+/** Combine the board buff + a per-cell ×1.5 boost into an engine PlacementBuff. */
+export function cellBuff(
+  mods: BattleMods,
+  key: string,
+  isCrumb: boolean,
+): PlacementBuff | undefined {
+  const buff: PlacementBuff = {};
+  if (mods.boardPowerAdd > 0 && !isCrumb) buff.powerAdd = mods.boardPowerAdd;
+  if (mods.boostedCells[key]) {
+    buff.powerMult = 1.5;
+    buff.hpMult = 1.5;
+  }
+  return Object.keys(buff).length ? buff : undefined;
 }
 
 function buildPlayerBoard(state: GameState, mods: BattleMods): BoardInput {
   const resolved = resolveKing(state.king, state.placements);
-  const cardBuff = (cardId: string): PlacementBuff | undefined =>
-    mods.powerBuff > 0 && cardId !== "crumb_demon" ? { powerAdd: mods.powerBuff } : undefined;
-  const kingBuff: PlacementBuff = {};
-  if (mods.powerBuff > 0) kingBuff.powerAdd = mods.powerBuff;
-  if (mods.kingBoost) {
-    kingBuff.powerMult = 1.5;
-    kingBuff.hpMult = 1.5;
-  }
   const ps: Placement[] = [
-    { cardId: resolved.king, x: 1, y: 1, king: true, buff: Object.keys(kingBuff).length ? kingBuff : undefined },
+    { cardId: resolved.king, x: 1, y: 1, king: true, buff: cellBuff(mods, KING_KEY, false) },
   ];
   for (const [key, cardId] of Object.entries(resolved.placements)) {
     const [x, y] = key.split("-").map(Number) as [number, number];
-    ps.push({ cardId, x, y, buff: cardBuff(cardId) });
+    ps.push({ cardId, x, y, buff: cellBuff(mods, key, cardId === "crumb_demon") });
   }
   return { owner: "A", placements: fillCrumbs(ps) };
 }
@@ -174,8 +184,14 @@ export interface MatchApi {
   revealOpponentKing: boolean;
   actionBar: ActionState[];
   barFull: boolean;
+  /** Action id currently awaiting a board target, or null. */
+  targeting: string | null;
+  mods: BattleMods;
   takeAction: () => void;
   activateAction: (id: string) => void;
+  applyTargetCell: (x: number, y: number) => void;
+  applyTargetKing: () => void;
+  cancelTargeting: () => void;
   startMatch: () => void;
   discardHand: () => void;
   takeDiscard: () => void;
@@ -193,9 +209,10 @@ export function useMatch(): MatchApi {
   const [result, setResult] = useState<BattleResult | null>(null);
   const [actionBar, setActionBar] = useState<string[]>([]);
   const [usedActions, setUsedActions] = useState<Record<string, boolean>>({});
-  const [powerBuff, setPowerBuff] = useState(0);
-  const [kingBoost, setKingBoost] = useState(false);
+  const [boardPowerAdd, setBoardPowerAdd] = useState(0);
+  const [boostedCells, setBoostedCells] = useState<Record<string, true>>({});
   const [xrayActive, setXrayActive] = useState(false);
+  const [targeting, setTargeting] = useState<string | null>(null);
 
   const gsRef = useRef(gs);
   gsRef.current = gs;
@@ -203,8 +220,10 @@ export function useMatch(): MatchApi {
   barRef.current = actionBar;
   const usedRef = useRef(usedActions);
   usedRef.current = usedActions;
-  const modsRef = useRef<BattleMods>({ powerBuff: 0, kingBoost: false });
-  modsRef.current = { powerBuff, kingBoost };
+  const targetingRef = useRef(targeting);
+  targetingRef.current = targeting;
+  const modsRef = useRef<BattleMods>({ boardPowerAdd: 0, boostedCells: {} });
+  modsRef.current = { boardPowerAdd, boostedCells };
   const aiPlanRef = useRef<Placement[] | null>(null);
   if (!aiPlanRef.current) aiPlanRef.current = generateAiPlan();
 
@@ -253,7 +272,6 @@ export function useMatch(): MatchApi {
     if (ok) sfx.play("draw");
   }, []);
 
-  /** Move a drawn action card from the hand into the (max 3) action bar. */
   const takeAction = useCallback(() => {
     const hand = gsRef.current.hand;
     if (hand === null || !isActionId(hand) || barRef.current.length >= ACTION_SLOTS) return;
@@ -262,28 +280,75 @@ export function useMatch(): MatchApi {
     sfx.play("draw");
   }, []);
 
-  /** Activate an "active" action card in the bar (passives act on their own). */
-  const activateAction = useCallback((id: string) => {
-    if (isPassiveAction(id) || usedRef.current[id]) return;
-    const a = ACTIONS.get(id);
-    const params = a?.params ?? {};
-    if (a?.effect === "boardPowerBuff") setPowerBuff((b) => b + Number(params.power ?? 50));
-    else if (a?.effect === "upgradeCardTemp") setKingBoost(true);
-    else if (a?.effect === "revealBoard") {
-      setXrayActive(true);
-      window.setTimeout(() => setXrayActive(false), XRAY_MS);
-    }
-    setUsedActions((u) => ({ ...u, [id]: true }));
-    sfx.play("draw");
+  /** Shuffle the lanes of the opponent's front-row cards (Sandstorm). */
+  const shuffleEnemyFront = useCallback(() => {
+    const plan = aiPlanRef.current!;
+    const fronts = plan.filter((p) => !p.king && p.x === 3);
+    const ys = shuffle(fronts.map((p) => p.y));
+    fronts.forEach((p, i) => (p.y = ys[i]!));
   }, []);
 
+  const activateAction = useCallback(
+    (id: string) => {
+      if (isPassiveAction(id) || usedRef.current[id]) return;
+      if (isTargetedAction(id)) {
+        setTargeting(id);
+        sfx.play("click");
+        return;
+      }
+      const a = ACTIONS.get(id);
+      const params = a?.params ?? {};
+      if (a?.effect === "boardPowerBuff") setBoardPowerAdd((b) => b + Number(params.power ?? 50));
+      else if (a?.effect === "revealBoard") {
+        setXrayActive(true);
+        window.setTimeout(() => setXrayActive(false), XRAY_MS);
+      } else if (a?.effect === "shuffleEnemyFrontRow") shuffleEnemyFront();
+      setUsedActions((u) => ({ ...u, [id]: true }));
+      sfx.play("draw");
+    },
+    [shuffleEnemyFront],
+  );
+
+  const applyTargetTo = useCallback((id: string, key: string) => {
+    const effect = ACTIONS.get(id)?.effect;
+    if (effect === "upgradeCardTemp") {
+      setBoostedCells((bc) => ({ ...bc, [key]: true }));
+    } else if (effect === "removeCard") {
+      setGs((s) => {
+        if (key === KING_KEY) return { ...s, king: null };
+        const placements = { ...s.placements };
+        const removed = placements[key];
+        delete placements[key];
+        return { ...s, placements, discard: removed ? [...s.discard, removed] : s.discard };
+      });
+    }
+    setUsedActions((u) => ({ ...u, [id]: true }));
+    setTargeting(null);
+    sfx.play("place");
+  }, []);
+
+  const applyTargetCell = useCallback(
+    (x: number, y: number) => {
+      const id = targetingRef.current;
+      if (!id || !gsRef.current.placements[cellKey(x, y)]) return;
+      applyTargetTo(id, cellKey(x, y));
+    },
+    [applyTargetTo],
+  );
+  const applyTargetKing = useCallback(() => {
+    const id = targetingRef.current;
+    if (!id || !gsRef.current.king) return;
+    applyTargetTo(id, KING_KEY);
+  }, [applyTargetTo]);
+  const cancelTargeting = useCallback(() => setTargeting(null), []);
+
   const enterPrebattle = useCallback(() => {
+    setTargeting(null);
     setGs((s) => {
       const resolved = resolveKing(s.king, s.placements);
       const placements = { ...resolved.placements };
       const empties = shuffle(perimeterCells().filter((c) => !placements[cellKey(c.x, c.y)]));
       let idx = 0;
-      // Passive "fill" action cards drop strong cards into empty slots first.
       for (const actId of barRef.current) {
         const a = ACTIONS.get(actId);
         if (a?.effect !== "fillEmpty") continue;
@@ -294,7 +359,6 @@ export function useMatch(): MatchApi {
           placements[cellKey(c.x, c.y)] = cardId;
         }
       }
-      // Anything still empty becomes a Crumb Demon.
       for (; idx < empties.length; idx++) {
         const c = empties[idx]!;
         placements[cellKey(c.x, c.y)] = "crumb_demon";
@@ -340,9 +404,10 @@ export function useMatch(): MatchApi {
     setResult(null);
     setActionBar([]);
     setUsedActions({});
-    setPowerBuff(0);
-    setKingBoost(false);
+    setBoardPowerAdd(0);
+    setBoostedCells({});
     setXrayActive(false);
+    setTargeting(null);
     setTimeLeft(COUNTDOWN_SECONDS);
     setPhase("intro");
   }, []);
@@ -408,8 +473,13 @@ export function useMatch(): MatchApi {
     revealOpponentKing: xrayActive || phase === "panic" || phase === "prebattle",
     actionBar: actionBar.map((id) => ({ id, used: !!usedActions[id], passive: isPassiveAction(id) })),
     barFull: actionBar.length >= ACTION_SLOTS,
+    targeting,
+    mods: { boardPowerAdd, boostedCells },
     takeAction,
     activateAction,
+    applyTargetCell,
+    applyTargetKing,
+    cancelTargeting,
     startMatch,
     discardHand,
     takeDiscard,

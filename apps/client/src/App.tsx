@@ -112,6 +112,10 @@ export default function App() {
                 side="left"
                 interactive={interactive}
                 handActive={m.hand !== null}
+                mods={m.mods}
+                targeting={m.targeting !== null}
+                onTarget={m.applyTargetCell}
+                onTargetKing={m.applyTargetKing}
                 onCellClick={(x, y) => m.placeAt(x, y)}
                 onKingClick={m.placeKing}
                 onCardInfo={openInfo}
@@ -136,6 +140,13 @@ export default function App() {
               />
             </section>
           </div>
+
+          {m.targeting && (
+            <div className="targeting-bar">
+              🎯 בחרו קלף על הלוח שלכם עבור "{ACTIONS.get(m.targeting)?.name.he}"
+              <button onClick={m.cancelTargeting}>ביטול</button>
+            </div>
+          )}
 
           {interactive && (
             <div className="actions">

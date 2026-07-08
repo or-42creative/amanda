@@ -169,6 +169,19 @@
     "usableIn": ["build", "panic"]
   },
   {
+    "id": "recall_card",
+    "name": { "he": "פינוי קלף", "en": "Recall Card" },
+    "rarity": "rare",
+    "copiesInPack": 6,
+    "description": {
+      "he": "בלחיצה: בחר קלף שהנחת על הלוח והורד אותו (המשבצת מתפנה). מנטרל את ההדבקה.",
+      "en": "On use: pick a card you placed and remove it (its slot frees up). Undoes the glue."
+    },
+    "effect": "removeCard",
+    "params": {},
+    "usableIn": ["build", "panic"]
+  },
+  {
     "id": "fill_lava",
     "name": { "he": "מילוי לאבה", "en": "Lava Fill" },
     "rarity": "epic",

@@ -3,6 +3,12 @@ import { KING } from "@amanda/shared";
 import { CATALOG } from "../data/catalog";
 import { ELEMENT_META, RANGE_META, RARITY_META } from "../data/cardMeta";
 
+interface StatBuff {
+  powerAdd?: number;
+  powerMult?: number;
+  hpMult?: number;
+}
+
 interface Props {
   cardId: string;
   onClick?: () => void;
@@ -10,16 +16,22 @@ interface Props {
   size?: "small" | "medium" | "large";
   /** Show the ×3 HP/Power King bonus in the displayed stats. */
   king?: boolean;
+  /** Action-card stat modifiers to reflect in the displayed numbers. */
+  buff?: StatBuff;
 }
 
-export function CardView({ cardId, onClick, onInfo, size = "medium", king = false }: Props) {
+export function CardView({ cardId, onClick, onInfo, size = "medium", king = false, buff }: Props) {
   const card = CATALOG.get(cardId);
   if (!card) return null;
 
   const el = ELEMENT_META[card.elements[0]!];
   const rarity = RARITY_META[card.rarity];
-  const hp = card.stats.hp * (king ? KING.hpMultiplier : 1);
-  const power = card.stats.power * (king ? KING.powerMultiplier : 1);
+  const b = buff ?? {};
+  const baseHp = card.stats.hp * (b.hpMult ?? 1);
+  const basePower = card.stats.power * (b.powerMult ?? 1) + (b.powerAdd ?? 0);
+  const hp = Math.round(baseHp * (king ? KING.hpMultiplier : 1));
+  const power = Math.round(basePower * (king ? KING.powerMultiplier : 1));
+  const buffed = !!(b.powerAdd || b.powerMult || b.hpMult);
   const style: CSSProperties = {
     "--card-color": card.art.placeholderColor,
     "--rarity-color": rarity.color,
@@ -53,7 +65,7 @@ export function CardView({ cardId, onClick, onInfo, size = "medium", king = fals
       <span className="card__name">{card.name.he}</span>
 
       {size !== "small" && (
-        <span className="card__stats">
+        <span className={`card__stats${buffed ? " card__stats--buffed" : ""}`}>
           <span title="חיים">❤️ {hp}</span>
           <span title="עוצמה">⚔️ {power}</span>
         </span>

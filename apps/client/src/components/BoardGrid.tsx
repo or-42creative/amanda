@@ -1,5 +1,5 @@
 import { CardView, CardBack } from "./CardView";
-import { BOARD_SIZE, cellKey, isKingCell } from "../game/useMatch";
+import { BOARD_SIZE, cellKey, isKingCell, type BattleMods } from "../game/useMatch";
 
 interface Props {
   placements: Record<string, string>;
@@ -19,7 +19,15 @@ interface Props {
   onKingClick?: () => void;
   onCardInfo?: (cardId: string) => void;
   compact?: boolean;
+  /** Action-card buffs to reflect in this board's card stats (player only). */
+  mods?: BattleMods;
+  /** In targeting mode, clicking an occupied cell picks it as the target. */
+  targeting?: boolean;
+  onTarget?: (x: number, y: number) => void;
+  onTargetKing?: () => void;
 }
+
+const KING_KEY = "king";
 
 export function BoardGrid({
   placements,
@@ -33,7 +41,21 @@ export function BoardGrid({
   onKingClick,
   onCardInfo,
   compact = false,
+  mods,
+  targeting = false,
+  onTarget,
+  onTargetKing,
 }: Props) {
+  const buffFor = (key: string, cardId: string) => {
+    if (!mods) return undefined;
+    const buff: { powerAdd?: number; powerMult?: number; hpMult?: number } = {};
+    if (mods.boardPowerAdd > 0 && cardId !== "crumb_demon") buff.powerAdd = mods.boardPowerAdd;
+    if (mods.boostedCells[key]) {
+      buff.powerMult = 1.5;
+      buff.hpMult = 1.5;
+    }
+    return Object.keys(buff).length ? buff : undefined;
+  };
   const cells: Array<{ x: number; y: number }> = [];
   for (let x = 0; x < BOARD_SIZE; x++)
     for (let y = 0; y < BOARD_SIZE; y++) if (!isKingCell(x, y)) cells.push({ x, y });
@@ -47,10 +69,14 @@ export function BoardGrid({
   return (
     <div className={`board${compact ? " board--compact" : ""}`} dir="ltr">
       <div
-        className={`slot slot--king${king ? " slot--filled" : ""}`}
+        className={`slot slot--king${king ? " slot--filled" : ""}${targeting && king ? " slot--target" : ""}`}
         style={{ gridColumn: "2 / 4", gridRow: "2 / 4" }}
         onClick={() => {
           if (!interactive) return;
+          if (targeting) {
+            if (king) onTargetKing?.();
+            return;
+          }
           if (king) onCardInfo?.(king);
           else onKingClick?.();
         }}
@@ -62,6 +88,7 @@ export function BoardGrid({
             cardId={king}
             size={compact ? "small" : "large"}
             king
+            buff={buffFor(KING_KEY, king)}
             onInfo={onCardInfo ? () => onCardInfo(king) : undefined}
           />
         ) : (
@@ -76,10 +103,14 @@ export function BoardGrid({
         return (
           <div
             key={key}
-            className={`slot${occ && shown ? " slot--filled" : ""}`}
+            className={`slot${occ && shown ? " slot--filled" : ""}${targeting && occ ? " slot--target" : ""}`}
             style={{ gridColumn: colForX(x), gridRow: rowForY(y) }}
             onClick={() => {
               if (!interactive) return;
+              if (targeting) {
+                if (occ) onTarget?.(x, y);
+                return;
+              }
               if (occ) onCardInfo?.(occ);
               else onCellClick?.(x, y);
             }}
@@ -90,6 +121,7 @@ export function BoardGrid({
               <CardView
                 cardId={occ}
                 size={size}
+                buff={buffFor(key, occ)}
                 onInfo={onCardInfo ? () => onCardInfo(occ) : undefined}
               />
             ) : (

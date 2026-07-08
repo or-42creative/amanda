@@ -119,12 +119,17 @@ that family — e.g. Dragon Scales, Photosynthesis). Tap **ℹ** on any action c
 plain explanation of what it does. A match **never ends in a draw** — a timeout is
 broken by King HP → total board HP → unit count → a deterministic coin flip.
 
-Match deck is **24 monster cards + 5 Action Cards** shuffled together (a deck-builder
+Match deck is **18 monster cards + 4 Action Cards** shuffled together (a deck-builder
 screen comes later). **Action Cards are drawn during play**: when one comes up you
-choose to **take it** into your 3-slot action bar (or discard it). Some are **active**
-(⚡ Energy Boost, 👁️ X-Ray, ⬆️ Full Refuel — click in the bar to use) and some are
-**passive** (🌋/🪨/🔥/💧 *Fill* cards — while held, they fill your empty slots at
-battle start with a strong card instead of Crumb Demons — so it can pay to leave slots
-open). The **opponent builds its board over the Build phase** (its front row appears as
-it plays). Placement/battle share one orientation: **you on the left, opponent on the
-right, front rows meeting in the middle.** Timing: Build 90 s → Panic 15 s → Battle 15 s.
+choose to **take it** into your 3-slot action bar (or discard it). Cards come in three
+kinds:
+- **Active, instant** — ⚡ Energy Boost (+50 power to all your cards, shown in green on
+  the cards), 👁️ X-Ray (reveal the opponent), 🌪️ Sandstorm (shuffle the enemy front row).
+- **Active, targeted** — ⬆️ Full Refuel (pick a card → ×1.5) and 🧲 Recall (pick a placed
+  card → remove it, undoing the glue). Activating one enters a highlight "pick a card" mode.
+- **Passive** — 🌋/🪨/🔥/💧 *Fill* cards: while held, they fill your empty slots at battle
+  start with a strong card instead of Crumb Demons (so it can pay to leave slots open).
+
+Buffs are reflected live in the card's numbers. The **opponent builds its board over the
+Build phase**. Placement/battle share one orientation: **you left, opponent right, front
+rows meeting in the middle.** Timing: Build 90 s → Panic 15 s → Battle 15 s.

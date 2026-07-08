@@ -62,8 +62,8 @@ export const SIMULATION = {
 
 /** Deck composition — all values intentionally editable (GDD §12 dev note). */
 export const DECK = {
-  /** Cards per competitive deck (locked to 24 for now; a deck-builder screen comes later). */
-  size: 24,
+  /** Monster cards per match deck (18 monsters + 4 action cards per GDD). */
+  size: 18,
   allowedSizes: [18, 24] as const,
   /** Starter deck = one card from each series. */
   starterDeckSize: 18,
