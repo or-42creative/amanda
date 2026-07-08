@@ -181,12 +181,13 @@ export default function App() {
                 ) : m.handIsAction ? (
                   <button
                     className="action-hand"
-                    title="הסבר על הקלף"
+                    title="לחצו להסבר"
                     onClick={() => setActionDetail(m.hand!)}
                   >
+                    <span className="action-hand__info">i</span>
                     <span className="action-hand__icon">{ACTION_ICON[m.hand] ?? "🎴"}</span>
                     <span className="action-hand__name">{ACTIONS.get(m.hand)?.name.he}</span>
-                    <span className="action-hand__tag">קלף פעולה · ℹ הסבר</span>
+                    <span className="action-hand__tag">קלף פעולה</span>
                   </button>
                 ) : (
                   <CardView cardId={m.hand} size="large" onClick={() => openInfo(m.hand!)} onInfo={() => openInfo(m.hand!)} />

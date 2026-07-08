@@ -61,6 +61,7 @@ export function BoardGrid({
           <CardView
             cardId={king}
             size={compact ? "small" : "large"}
+            king
             onInfo={onCardInfo ? () => onCardInfo(king) : undefined}
           />
         ) : (

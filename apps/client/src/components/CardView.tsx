@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { KING } from "@amanda/shared";
 import { CATALOG } from "../data/catalog";
 import { ELEMENT_META, RANGE_META, RARITY_META } from "../data/cardMeta";
 
@@ -7,14 +8,18 @@ interface Props {
   onClick?: () => void;
   onInfo?: () => void;
   size?: "small" | "medium" | "large";
+  /** Show the ×3 HP/Power King bonus in the displayed stats. */
+  king?: boolean;
 }
 
-export function CardView({ cardId, onClick, onInfo, size = "medium" }: Props) {
+export function CardView({ cardId, onClick, onInfo, size = "medium", king = false }: Props) {
   const card = CATALOG.get(cardId);
   if (!card) return null;
 
   const el = ELEMENT_META[card.elements[0]!];
   const rarity = RARITY_META[card.rarity];
+  const hp = card.stats.hp * (king ? KING.hpMultiplier : 1);
+  const power = card.stats.power * (king ? KING.powerMultiplier : 1);
   const style: CSSProperties = {
     "--card-color": card.art.placeholderColor,
     "--rarity-color": rarity.color,
@@ -26,7 +31,10 @@ export function CardView({ cardId, onClick, onInfo, size = "medium" }: Props) {
         <span className="card__element" title={el.he}>
           {el.icon}
         </span>
-        {card.midBoss && <span className="card__boss" title="ענק אמצע (מתאים למלך)">👑</span>}
+        {king && <span className="card__boss" title="בונוס מלך ×3">👑×3</span>}
+        {!king && card.midBoss && (
+          <span className="card__boss" title="ענק אמצע (מתאים למלך)">👑</span>
+        )}
         {onInfo && (
           <button
             type="button"
@@ -46,8 +54,8 @@ export function CardView({ cardId, onClick, onInfo, size = "medium" }: Props) {
 
       {size !== "small" && (
         <span className="card__stats">
-          <span title="חיים">❤️ {card.stats.hp}</span>
-          <span title="עוצמה">⚔️ {card.stats.power}</span>
+          <span title="חיים">❤️ {hp}</span>
+          <span title="עוצמה">⚔️ {power}</span>
         </span>
       )}
 

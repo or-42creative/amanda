@@ -110,7 +110,9 @@ attack pulses, floating damage, death fades) and a **King-explosion board
 collapse** finale before the result; synthesised **sound effects** (mutable);
 and a layered animated background.
 
-King bonus: the card in the King slot gets **×3 HP and ×3 Power** (Or's tuned rule).
+King bonus: the card in the King slot gets **×3 HP and ×3 Power** (Or's tuned rule) —
+and the King-slot card **displays the boosted numbers** (with a 👑×3 badge). Card stats
+always read **❤️ HP on the left, ⚔️ Power on the right**.
 
 **Series synergy** activates at **3** same-family cards on a board (passive aura for
 that family — e.g. Dragon Scales, Photosynthesis). Tap **ℹ** on any action card for a
