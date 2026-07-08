@@ -167,5 +167,57 @@
     "effect": "summonAmanda",
     "params": {},
     "usableIn": ["build", "panic"]
+  },
+  {
+    "id": "fill_lava",
+    "name": { "he": "מילוי לאבה", "en": "Lava Fill" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "פסיבי: בסוף הבנייה ממלא עד 3 משבצות ריקות ב'לאבה' (במקום מפלצת פירורים) במיקומים אקראיים.",
+      "en": "Passive: at the end of building, fills up to 3 empty slots with Lava (instead of Crumb Demons) at random positions."
+    },
+    "effect": "fillEmpty",
+    "params": { "cardId": "dragons_04_lava", "count": 3 },
+    "usableIn": ["build"]
+  },
+  {
+    "id": "fill_colossus",
+    "name": { "he": "מילוי גולם אבן", "en": "Colossus Fill" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "פסיבי: בסוף הבנייה ממלא עד 3 משבצות ריקות ב'גולם אבן' במיקומים אקראיים.",
+      "en": "Passive: at the end of building, fills up to 3 empty slots with Stone Colossus at random positions."
+    },
+    "effect": "fillEmpty",
+    "params": { "cardId": "giants_01_stone_colossus", "count": 3 },
+    "usableIn": ["build"]
+  },
+  {
+    "id": "fill_flame",
+    "name": { "he": "מילוי דרקון אש", "en": "Flame Fill" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "פסיבי: בסוף הבנייה ממלא עד 3 משבצות ריקות ב'פליים דראגון' במיקומים אקראיים.",
+      "en": "Passive: at the end of building, fills up to 3 empty slots with Flame Dragon at random positions."
+    },
+    "effect": "fillEmpty",
+    "params": { "cardId": "dragons_01_flame_dragon", "count": 3 },
+    "usableIn": ["build"]
+  },
+  {
+    "id": "fill_cube",
+    "name": { "he": "מילוי קוביית ג'לי", "en": "Cube Fill" },
+    "rarity": "epic",
+    "copiesInPack": 5,
+    "description": {
+      "he": "פסיבי: בסוף הבנייה ממלא עד 3 משבצות ריקות ב'קוביית ג'לי' במיקומים אקראיים.",
+      "en": "Passive: at the end of building, fills up to 3 empty slots with Gelatinous Cube at random positions."
+    },
+    "effect": "fillEmpty",
+    "params": { "cardId": "slimes_02_gelatinous_cube", "count": 3 },
+    "usableIn": ["build"]
   }
 ]

@@ -13,6 +13,10 @@ const ACTION_ICON: Record<string, string> = {
   energy_boost: "⚡",
   xray: "👁️",
   full_refuel: "⬆️",
+  fill_lava: "🌋",
+  fill_colossus: "🪨",
+  fill_flame: "🔥",
+  fill_cube: "💧",
 };
 
 const PHASE_LABEL: Record<string, string> = {
@@ -133,20 +137,27 @@ export default function App() {
 
           {interactive && (
             <div className="actions">
-              <span className="actions__title">קלפי פעולה:</span>
-              {m.actions.map((a) => {
+              <span className="actions__title">
+                קלפי פעולה {m.actionBar.length}/3:
+              </span>
+              {m.actionBar.length === 0 && (
+                <span className="actions__empty">שלוף קלפי פעולה מהחפיסה וקח אותם לכאן</span>
+              )}
+              {m.actionBar.map((a) => {
                 const card = ACTIONS.get(a.id);
                 return (
                   <button
                     key={a.id}
-                    className="action-chip"
-                    disabled={a.used}
+                    className={`action-chip${a.passive ? " action-chip--passive" : ""}`}
+                    disabled={a.passive || a.used}
                     title={card?.description.he}
                     onClick={() => m.activateAction(a.id)}
                   >
                     <span className="action-chip__icon">{ACTION_ICON[a.id] ?? "🎴"}</span>
                     <span className="action-chip__name">{card?.name.he}</span>
-                    {a.used && <span className="action-chip__used">✔</span>}
+                    <span className="action-chip__used">
+                      {a.passive ? "♾️" : a.used ? "✔" : "▶"}
+                    </span>
                   </button>
                 );
               })}
@@ -156,22 +167,37 @@ export default function App() {
           {interactive && (
             <aside className="hand">
               <div className="hand__current">
-                {m.hand ? (
-                  <CardView cardId={m.hand} size="large" onClick={() => openInfo(m.hand!)} onInfo={() => openInfo(m.hand!)} />
-                ) : (
+                {!m.hand ? (
                   <div className="hand__empty">אין קלף</div>
+                ) : m.handIsAction ? (
+                  <button
+                    className="action-hand"
+                    title={ACTIONS.get(m.hand)?.description.he}
+                    onClick={() => {}}
+                  >
+                    <span className="action-hand__icon">{ACTION_ICON[m.hand] ?? "🎴"}</span>
+                    <span className="action-hand__name">{ACTIONS.get(m.hand)?.name.he}</span>
+                    <span className="action-hand__tag">קלף פעולה</span>
+                  </button>
+                ) : (
+                  <CardView cardId={m.hand} size="large" onClick={() => openInfo(m.hand!)} onInfo={() => openInfo(m.hand!)} />
                 )}
               </div>
               <div className="hand__buttons">
+                {m.handIsAction && (
+                  <button className="take-action" onClick={m.takeAction} disabled={m.barFull}>
+                    {m.barFull ? "הבר מלא" : "➕ קח לפעולה"}
+                  </button>
+                )}
                 <button onClick={m.discardHand} disabled={m.hand === null}>
-                  זרוק לפח 🗑️
+                  זרוק 🗑️
                 </button>
                 <button onClick={m.takeDiscard} disabled={!m.discardTop}>
                   קח מהפח {m.discardTop ? "♻️" : ""}
                 </button>
               </div>
               <p className="hand__hint">
-                הקלף נשלף אוטומטית. משבצת ריקה = הדבקה (קבוע!) · 👑 = מלך · ℹ = פרטים
+                מפלצת: הנחה על משבצת (קבוע!) · קלף פעולה: "קח לפעולה" (עד 3) · 👑 = מלך
               </p>
               {!m.hasKing && <p className="warn">⚠️ עדיין לא מיניתם מלך!</p>}
               <button className="btn-fight" onClick={m.toBattle}>
@@ -182,7 +208,7 @@ export default function App() {
 
           {m.phase === "prebattle" && (
             <div className="overlay">
-              <div className="overlay__mini">מפלצות פירורים ממלאות את החוסר…</div>
+              <div className="overlay__mini">ממלאים את המשבצות הריקות…</div>
               <div className="overlay__count">{Math.ceil(m.timeLeft)}</div>
               <div className="overlay__label">הקרב מתחיל!</div>
             </div>

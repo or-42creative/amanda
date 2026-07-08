@@ -7,7 +7,16 @@ import {
   type Placement,
   type PlacementBuff,
 } from "@amanda/engine";
-import { ACTIONS, CATALOG, IMPLEMENTED_ACTIONS, KING_CANDIDATES, cardPool } from "../data/catalog";
+import {
+  ACTIONS,
+  ACTION_DECK_COUNT,
+  ACTION_SLOTS,
+  CATALOG,
+  KING_CANDIDATES,
+  SUPPORTED_ACTIONS,
+  cardPool,
+  isPassiveAction,
+} from "../data/catalog";
 import { sfx } from "./sfx";
 
 export type Phase = "intro" | "countdown" | "build" | "panic" | "prebattle" | "battle" | "result";
@@ -24,6 +33,12 @@ export function isKingCell(x: number, y: number): boolean {
 export function cellKey(x: number, y: number): string {
   return `${x}-${y}`;
 }
+function isActionId(id: string): boolean {
+  return ACTIONS.has(id);
+}
+function isMonsterId(id: string): boolean {
+  return CATALOG.has(id);
+}
 
 function shuffle<T>(items: T[]): T[] {
   const a = [...items];
@@ -34,8 +49,11 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
+/** 24 monster cards + a handful of action cards, all shuffled together. */
 function matchDeck(): string[] {
-  return shuffle(cardPool()).slice(0, DECK.size);
+  const monsters = shuffle(cardPool()).slice(0, DECK.size);
+  const actions = shuffle(SUPPORTED_ACTIONS).slice(0, ACTION_DECK_COUNT);
+  return shuffle([...monsters, ...actions]);
 }
 
 function perimeterCells(): Array<{ x: number; y: number }> {
@@ -45,17 +63,17 @@ function perimeterCells(): Array<{ x: number; y: number }> {
   return cells;
 }
 
-/** The opponent's ordered build plan: real cards (King + monsters), front row first. */
 function generateAiPlan(): Placement[] {
   const kingPool = KING_CANDIDATES.length ? KING_CANDIDATES : [...CATALOG.values()];
   const king = kingPool[Math.floor(Math.random() * kingPool.length)]!.id;
-  const pool = shuffle(matchDeck().filter((id) => id !== king));
+  const pool = shuffle(shuffle(cardPool()).slice(0, DECK.size).filter((id) => id !== king));
   const chosen = shuffle(perimeterCells()).slice(0, 7);
   const reals: Placement[] = chosen.map((c, i) => ({ cardId: pool[i % pool.length]!, x: c.x, y: c.y }));
-  reals.sort((a, b) => b.x - a.x); // front row (x=3) placed first → visible as it builds
+  reals.sort((a, b) => b.x - a.x);
   return [...reals, { cardId: king, x: 1, y: 1, king: true }];
 }
 
+/** Fill any empty perimeter slot with Crumb Demons (fallback filler). */
 function fillCrumbs(placements: Placement[]): Placement[] {
   const out = [...placements];
   for (const c of perimeterCells())
@@ -95,8 +113,8 @@ interface BattleMods {
 
 function buildPlayerBoard(state: GameState, mods: BattleMods): BoardInput {
   const resolved = resolveKing(state.king, state.placements);
-  const cardBuff = (): PlacementBuff | undefined =>
-    mods.powerBuff > 0 ? { powerAdd: mods.powerBuff } : undefined;
+  const cardBuff = (cardId: string): PlacementBuff | undefined =>
+    mods.powerBuff > 0 && cardId !== "crumb_demon" ? { powerAdd: mods.powerBuff } : undefined;
   const kingBuff: PlacementBuff = {};
   if (mods.powerBuff > 0) kingBuff.powerAdd = mods.powerBuff;
   if (mods.kingBoost) {
@@ -108,7 +126,7 @@ function buildPlayerBoard(state: GameState, mods: BattleMods): BoardInput {
   ];
   for (const [key, cardId] of Object.entries(resolved.placements)) {
     const [x, y] = key.split("-").map(Number) as [number, number];
-    ps.push({ cardId, x, y, buff: cardBuff() });
+    ps.push({ cardId, x, y, buff: cardBuff(cardId) });
   }
   return { owner: "A", placements: fillCrumbs(ps) };
 }
@@ -134,17 +152,17 @@ export interface BoardView {
   placements: Record<string, string>;
   king: string | null;
 }
-
 export interface ActionState {
   id: string;
   used: boolean;
+  passive: boolean;
 }
 
 export interface MatchApi {
   phase: Phase;
   timeLeft: number;
-  deckCount: number;
   hand: string | null;
+  handIsAction: boolean;
   discardTop: string | null;
   placements: Record<string, string>;
   king: string | null;
@@ -153,7 +171,9 @@ export interface MatchApi {
   opponent: BoardView;
   revealOpponentCell: (x: number, y: number) => boolean;
   revealOpponentKing: boolean;
-  actions: ActionState[];
+  actionBar: ActionState[];
+  barFull: boolean;
+  takeAction: () => void;
   activateAction: (id: string) => void;
   startMatch: () => void;
   discardHand: () => void;
@@ -170,6 +190,7 @@ export function useMatch(): MatchApi {
   const [timeLeft, setTimeLeft] = useState<number>(COUNTDOWN_SECONDS);
   const [gs, setGs] = useState<GameState>(initialGameState);
   const [result, setResult] = useState<BattleResult | null>(null);
+  const [actionBar, setActionBar] = useState<string[]>([]);
   const [usedActions, setUsedActions] = useState<Record<string, boolean>>({});
   const [powerBuff, setPowerBuff] = useState(0);
   const [kingBoost, setKingBoost] = useState(false);
@@ -177,6 +198,10 @@ export function useMatch(): MatchApi {
 
   const gsRef = useRef(gs);
   gsRef.current = gs;
+  const barRef = useRef(actionBar);
+  barRef.current = actionBar;
+  const usedRef = useRef(usedActions);
+  usedRef.current = usedActions;
   const modsRef = useRef<BattleMods>({ powerBuff: 0, kingBoost: false });
   modsRef.current = { powerBuff, kingBoost };
   const aiPlanRef = useRef<Placement[] | null>(null);
@@ -187,7 +212,7 @@ export function useMatch(): MatchApi {
     const key = cellKey(x, y);
     let ok = false;
     setGs((s) => {
-      if (s.hand === null || s.placements[key]) return s;
+      if (s.hand === null || !isMonsterId(s.hand) || s.placements[key]) return s;
       ok = true;
       return drawIfEmpty({ ...s, placements: { ...s.placements, [key]: s.hand }, hand: null });
     });
@@ -197,7 +222,7 @@ export function useMatch(): MatchApi {
   const placeKing = useCallback(() => {
     let ok = false;
     setGs((s) => {
-      if (s.hand === null || s.king !== null) return s;
+      if (s.hand === null || !isMonsterId(s.hand) || s.king !== null) return s;
       ok = true;
       return drawIfEmpty({ ...s, king: s.hand, hand: null });
     });
@@ -227,28 +252,52 @@ export function useMatch(): MatchApi {
     if (ok) sfx.play("draw");
   }, []);
 
+  /** Move a drawn action card from the hand into the (max 3) action bar. */
+  const takeAction = useCallback(() => {
+    const hand = gsRef.current.hand;
+    if (hand === null || !isActionId(hand) || barRef.current.length >= ACTION_SLOTS) return;
+    setActionBar((bar) => (bar.length < ACTION_SLOTS ? [...bar, hand] : bar));
+    setGs((s) => drawIfEmpty({ ...s, hand: null }));
+    sfx.play("draw");
+  }, []);
+
+  /** Activate an "active" action card in the bar (passives act on their own). */
   const activateAction = useCallback((id: string) => {
-    setUsedActions((u) => {
-      if (u[id]) return u;
-      const effect = ACTIONS.get(id)?.effect;
-      const params = ACTIONS.get(id)?.params ?? {};
-      if (effect === "boardPowerBuff") setPowerBuff((b) => b + Number(params.power ?? 50));
-      else if (effect === "upgradeCardTemp") setKingBoost(true);
-      else if (effect === "revealBoard") {
-        setXrayActive(true);
-        window.setTimeout(() => setXrayActive(false), XRAY_MS);
-      }
-      sfx.play("draw");
-      return { ...u, [id]: true };
-    });
+    if (isPassiveAction(id) || usedRef.current[id]) return;
+    const a = ACTIONS.get(id);
+    const params = a?.params ?? {};
+    if (a?.effect === "boardPowerBuff") setPowerBuff((b) => b + Number(params.power ?? 50));
+    else if (a?.effect === "upgradeCardTemp") setKingBoost(true);
+    else if (a?.effect === "revealBoard") {
+      setXrayActive(true);
+      window.setTimeout(() => setXrayActive(false), XRAY_MS);
+    }
+    setUsedActions((u) => ({ ...u, [id]: true }));
+    sfx.play("draw");
   }, []);
 
   const enterPrebattle = useCallback(() => {
     setGs((s) => {
       const resolved = resolveKing(s.king, s.placements);
       const placements = { ...resolved.placements };
-      for (const c of perimeterCells())
-        if (!placements[cellKey(c.x, c.y)]) placements[cellKey(c.x, c.y)] = "crumb_demon";
+      const empties = shuffle(perimeterCells().filter((c) => !placements[cellKey(c.x, c.y)]));
+      let idx = 0;
+      // Passive "fill" action cards drop strong cards into empty slots first.
+      for (const actId of barRef.current) {
+        const a = ACTIONS.get(actId);
+        if (a?.effect !== "fillEmpty") continue;
+        const cardId = String(a.params.cardId);
+        const count = Number(a.params.count ?? 3);
+        for (let n = 0; n < count && idx < empties.length; n++, idx++) {
+          const c = empties[idx]!;
+          placements[cellKey(c.x, c.y)] = cardId;
+        }
+      }
+      // Anything still empty becomes a Crumb Demon.
+      for (; idx < empties.length; idx++) {
+        const c = empties[idx]!;
+        placements[cellKey(c.x, c.y)] = "crumb_demon";
+      }
       return { ...s, king: resolved.king, placements, hand: null };
     });
     sfx.play("crumbs");
@@ -287,6 +336,7 @@ export function useMatch(): MatchApi {
     aiPlanRef.current = generateAiPlan();
     setGs(initialGameState());
     setResult(null);
+    setActionBar([]);
     setUsedActions({});
     setPowerBuff(0);
     setKingBoost(false);
@@ -327,7 +377,6 @@ export function useMatch(): MatchApi {
     [phase, xrayActive],
   );
 
-  // Opponent builds its album over the Build phase (front row appears first).
   const plan = aiPlanRef.current;
   let visible = plan.length;
   if (phase === "build") {
@@ -342,13 +391,11 @@ export function useMatch(): MatchApi {
     else opponentView.placements[cellKey(p.x, p.y)] = p.cardId;
   }
 
-  const actions: ActionState[] = IMPLEMENTED_ACTIONS.map((id) => ({ id, used: !!usedActions[id] }));
-
   return {
     phase,
     timeLeft,
-    deckCount: gs.deck.length,
     hand: gs.hand,
+    handIsAction: gs.hand !== null && isActionId(gs.hand),
     discardTop: gs.discard.length ? gs.discard[gs.discard.length - 1]! : null,
     placements: gs.placements,
     king: gs.king,
@@ -357,7 +404,9 @@ export function useMatch(): MatchApi {
     opponent: opponentView,
     revealOpponentCell,
     revealOpponentKing: xrayActive || phase === "panic" || phase === "prebattle",
-    actions,
+    actionBar: actionBar.map((id) => ({ id, used: !!usedActions[id], passive: isPassiveAction(id) })),
+    barFull: actionBar.length >= ACTION_SLOTS,
+    takeAction,
     activateAction,
     startMatch,
     discardHand,

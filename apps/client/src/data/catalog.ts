@@ -70,5 +70,20 @@ export const ACTIONS: Map<string, ActionCard> = new Map(
   parseActionCards(actionsJson).map((a) => [a.id, a]),
 );
 
-/** Action cards whose effects are wired up in the single-player build (for now). */
-export const IMPLEMENTED_ACTIONS = ["energy_boost", "xray", "full_refuel"] as const;
+/**
+ * Action cards whose effects are wired up. Some are "active" (do something when
+ * clicked in the bar), some are "passive" (act by merely being in the bar).
+ */
+export const ACTIVE_ACTIONS = ["energy_boost", "xray", "full_refuel"] as const;
+export const PASSIVE_ACTIONS = ["fill_lava", "fill_colossus", "fill_flame", "fill_cube"] as const;
+export const SUPPORTED_ACTIONS: string[] = [...ACTIVE_ACTIONS, ...PASSIVE_ACTIONS];
+
+/** How many action cards get shuffled into a match deck. */
+export const ACTION_DECK_COUNT = 5;
+/** Max action cards a player can hold in the bar at once. */
+export const ACTION_SLOTS = 3;
+
+/** True if an action card acts passively (no click needed). */
+export function isPassiveAction(id: string): boolean {
+  return (PASSIVE_ACTIONS as readonly string[]).includes(id);
+}

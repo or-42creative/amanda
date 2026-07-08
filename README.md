@@ -112,8 +112,12 @@ and a layered animated background.
 
 King bonus: the card in the King slot gets **×3 HP and ×3 Power** (Or's tuned rule).
 
-Match deck is **24 cards** drawn from the pool (a deck-builder screen comes later).
-The **opponent builds its board over the Build phase** (its front row appears as it
-plays), and **Action Cards** (⚡ Energy Boost, 👁️ X-Ray, ⬆️ Full Refuel) are usable
-during prep. Placement/battle share one orientation: **you on the left, opponent on
-the right, front rows meeting in the middle.** Timing: Build 90 s → Panic 15 s → Battle 15 s.
+Match deck is **24 monster cards + 5 Action Cards** shuffled together (a deck-builder
+screen comes later). **Action Cards are drawn during play**: when one comes up you
+choose to **take it** into your 3-slot action bar (or discard it). Some are **active**
+(⚡ Energy Boost, 👁️ X-Ray, ⬆️ Full Refuel — click in the bar to use) and some are
+**passive** (🌋/🪨/🔥/💧 *Fill* cards — while held, they fill your empty slots at
+battle start with a strong card instead of Crumb Demons — so it can pay to leave slots
+open). The **opponent builds its board over the Build phase** (its front row appears as
+it plays). Placement/battle share one orientation: **you on the left, opponent on the
+right, front rows meeting in the middle.** Timing: Build 90 s → Panic 15 s → Battle 15 s.
