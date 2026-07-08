@@ -30,8 +30,8 @@ export const ARENA = {
 
 /** King slot rules (GDD §2). */
 export const KING = {
-  /** The card in the King slot gets ×5 HP. */
-  hpMultiplier: 5,
+  /** The card in the King slot gets ×3 HP (Or's tuned rule, overriding the GDD's ×5). */
+  hpMultiplier: 3,
   /** The King also hits ×3 harder (Power/damage multiplier). */
   powerMultiplier: 3,
   /** The King slot is permanently static (King's Trap). */
@@ -44,8 +44,8 @@ export const KING = {
 
 /** Match phase timeline in seconds (GDD §4). Total ≈ 85s. */
 export const PHASES = {
-  build: { seconds: 120, label: { he: "טירוף הבנייה", en: "Build Frenzy" } },
-  panic: { seconds: 30, label: { he: "שניות הפאניקה", en: "Panic Seconds" } },
+  build: { seconds: 90, label: { he: "טירוף הבנייה", en: "Build Frenzy" } },
+  panic: { seconds: 15, label: { he: "שניות הפאניקה", en: "Panic Seconds" } },
   battle: { seconds: 15, label: { he: "הקרב האוטומטי", en: "Auto-Battle" } },
 } as const;
 
@@ -62,8 +62,8 @@ export const SIMULATION = {
 
 /** Deck composition — all values intentionally editable (GDD §12 dev note). */
 export const DECK = {
-  /** Cards per competitive deck. GDD leaves 18 vs 24 to playtesting → default 18. */
-  size: 18,
+  /** Cards per competitive deck (locked to 24 for now; a deck-builder screen comes later). */
+  size: 24,
   allowedSizes: [18, 24] as const,
   /** Starter deck = one card from each series. */
   starterDeckSize: 18,

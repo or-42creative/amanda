@@ -90,6 +90,21 @@ describe("core combat", () => {
   });
 });
 
+describe("King bonus", () => {
+  it("a card in the King slot gets ×3 HP and ×3 Power", () => {
+    const grunt = testCard({ id: "grunt", hp: 100, power: 10, moveSpeed: 0 });
+    const setup: BattleSetup = {
+      seed: 1,
+      catalog: catalogOf(grunt),
+      a: { owner: "A", placements: [{ cardId: "grunt", x: 1, y: 1, king: true }] },
+      b: { owner: "B", placements: [{ cardId: "grunt", x: 3, y: 0 }] },
+    };
+    const king = runBattle(setup).finalUnits.find((u) => u.isKing)!;
+    expect(king.maxHp).toBe(300);
+    expect(king.power).toBe(30);
+  });
+});
+
 describe("determinism", () => {
   it("same setup + seed produces a byte-identical event log", () => {
     const makeSetup = (): BattleSetup => {

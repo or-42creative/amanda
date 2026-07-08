@@ -88,6 +88,7 @@ export function runBattle(setup: BattleSetup): BattleResult {
         lanes: u.lanes,
         hp: Math.max(0, Math.round(u.hp)),
         maxHp: u.maxHp,
+        power: Math.round(u.power),
         alive: u.alive,
         isKing: u.isKing,
       })),

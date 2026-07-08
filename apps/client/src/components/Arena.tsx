@@ -3,6 +3,7 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { ARENA, SIMULATION } from "@amanda/shared";
 import type { BattleResult, FrameUnit, Owner } from "@amanda/engine";
 import { cardColor, CATALOG } from "../data/catalog";
+import { ELEMENT_META } from "../data/cardMeta";
 import { sfx } from "../game/sfx";
 
 const CELL = 72;
@@ -58,13 +59,22 @@ export function Arena({ result, onFinish }: { result: BattleResult; onFinish: ()
         .fill(cardColor(fu.cardId))
         .stroke({ width: fu.isKing ? 5 : 3, color: OWNER_TINT[fu.owner] });
       const hp = new Graphics();
-      const name = CATALOG.get(fu.cardId)?.name.he ?? "";
+      const card = CATALOG.get(fu.cardId);
+      const icon = card ? ELEMENT_META[card.elements[0]!].icon : "";
+      const name = card?.name.he ?? "";
       const label = new Text({
-        text: fu.isKing ? `👑 ${name}` : name,
-        style: { fontFamily: "Segoe UI, sans-serif", fontSize: 11, fill: 0xffffff, fontWeight: "600" },
+        text: `${fu.isKing ? "👑 " : ""}${icon} ${name}\n⚔ ${fu.power}`,
+        style: {
+          fontFamily: "Segoe UI, sans-serif",
+          fontSize: 11,
+          fill: 0xffffff,
+          fontWeight: "600",
+          align: "center",
+          lineHeight: 13,
+        },
       });
       label.anchor.set(0.5);
-      label.y = w / 2 + 9;
+      label.y = w / 2 + 13;
       container.addChild(body, hp, label);
       app.stage.addChild(container);
       const g: UnitGfx = {
@@ -161,6 +171,20 @@ export function Arena({ result, onFinish }: { result: BattleResult; onFinish: ()
         bg.stroke({ width: 1, color: 0x263041 });
         bg.moveTo(W / 2, 0).lineTo(W / 2, H).stroke({ width: 3, color: 0x3a4a63 });
         app.stage.addChildAt(bg, 0);
+
+        // Identity banners: you on the left (A), opponent on the right (B).
+        const banner = (text: string, x: number, color: number) => {
+          const t = new Text({
+            text,
+            style: { fontFamily: "Segoe UI, sans-serif", fontSize: 15, fill: color, fontWeight: "800" },
+          });
+          t.anchor.set(0.5, 0);
+          t.x = x;
+          t.y = 4;
+          app.stage.addChild(t);
+        };
+        banner("🧑 אתה", W * 0.25, OWNER_TINT.A);
+        banner("🤖 היריב", W * 0.75, OWNER_TINT.B);
 
         const frames = result.frames;
         const events = result.events;

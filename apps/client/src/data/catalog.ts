@@ -1,4 +1,12 @@
-import { CRUMB_DEMON, parseSeries, type Card, type Series } from "@amanda/shared";
+import {
+  CRUMB_DEMON,
+  parseActionCards,
+  parseSeries,
+  type ActionCard,
+  type Card,
+  type Series,
+} from "@amanda/shared";
+import actionsJson from "../../../../data/action-cards.json";
 
 /**
  * Auto-load every series file under /data/series. Dropping a new NN-name.json
@@ -52,7 +60,15 @@ export function cardColor(cardId: string): string {
   return CATALOG.get(cardId)?.art.placeholderColor ?? "#888888";
 }
 
-/** A demo starter deck: every real monster card, shuffled deterministically. */
-export function starterDeck(): string[] {
+/** The full collectible pool (every real monster card). A match deck is drawn from it. */
+export function cardPool(): string[] {
   return [...CATALOG.keys()].filter((id) => id !== "crumb_demon");
 }
+
+/** All action cards, keyed by id. */
+export const ACTIONS: Map<string, ActionCard> = new Map(
+  parseActionCards(actionsJson).map((a) => [a.id, a]),
+);
+
+/** Action cards whose effects are wired up in the single-player build (for now). */
+export const IMPLEMENTED_ACTIONS = ["energy_boost", "xray", "full_refuel"] as const;

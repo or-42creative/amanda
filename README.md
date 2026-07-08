@@ -110,4 +110,10 @@ attack pulses, floating damage, death fades) and a **King-explosion board
 collapse** finale before the result; synthesised **sound effects** (mutable);
 and a layered animated background.
 
-King bonus: the card in the King slot gets **×5 HP and ×3 Power** (GDD + Or's rule).
+King bonus: the card in the King slot gets **×3 HP and ×3 Power** (Or's tuned rule).
+
+Match deck is **24 cards** drawn from the pool (a deck-builder screen comes later).
+The **opponent builds its board over the Build phase** (its front row appears as it
+plays), and **Action Cards** (⚡ Energy Boost, 👁️ X-Ray, ⬆️ Full Refuel) are usable
+during prep. Placement/battle share one orientation: **you on the left, opponent on
+the right, front rows meeting in the middle.** Timing: Build 90 s → Panic 15 s → Battle 15 s.

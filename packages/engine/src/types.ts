@@ -113,6 +113,7 @@ export interface FrameUnit {
   lanes: number[];
   hp: number;
   maxHp: number;
+  power: number;
   alive: boolean;
   isKing: boolean;
 }

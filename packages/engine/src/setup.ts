@@ -2,6 +2,13 @@ import { BOARD, KING, type Card } from "@amanda/shared";
 import { createRng } from "./rng.js";
 import type { BattleState, Owner, Unit } from "./types.js";
 
+/** Optional stat modifier applied to a placed card (e.g. from Action Cards). */
+export interface PlacementBuff {
+  powerAdd?: number;
+  powerMult?: number;
+  hpMult?: number;
+}
+
 /** One card placed on a player's local 4×4 board. */
 export interface Placement {
   cardId: string;
@@ -9,10 +16,12 @@ export interface Placement {
   x: number;
   /** Local lane/row 0..3. */
   y: number;
-  /** Marks this card as the King (forced to the central 2×2, static, ×5 HP). */
+  /** Marks this card as the King (forced to the central 2×2, static). */
   king?: boolean;
   /** Card stacked underneath via "Ground Floor" — revealed when this one dies. */
   below?: string;
+  /** Stat modifier (Action Card boosts). */
+  buff?: PlacementBuff;
 }
 
 export interface BoardInput {
@@ -46,6 +55,7 @@ interface UnitPlacement {
   facing: 1 | -1;
   isKing: boolean;
   below: string | null;
+  buff?: PlacementBuff;
 }
 
 /**
@@ -58,7 +68,10 @@ export function createUnitFromCard(
   owner: Owner,
   p: UnitPlacement,
 ): Unit {
-  const maxHp = p.isKing ? card.stats.hp * KING.hpMultiplier : card.stats.hp;
+  const buff = p.buff ?? {};
+  const baseHp = card.stats.hp * (buff.hpMult ?? 1);
+  const basePower = card.stats.power * (buff.powerMult ?? 1) + (buff.powerAdd ?? 0);
+  const maxHp = Math.round(p.isKing ? baseHp * KING.hpMultiplier : baseHp);
   return {
     uid: `u${state.nextUid++}`,
     cardId: card.id,
@@ -68,7 +81,7 @@ export function createUnitFromCard(
     activeElement: card.elements[0]!,
     maxHp,
     hp: maxHp,
-    power: p.isKing ? card.stats.power * KING.powerMultiplier : card.stats.power,
+    power: Math.round(p.isKing ? basePower * KING.powerMultiplier : basePower),
     attackSpeed: card.stats.attackSpeed,
     moveSpeed: p.isKing ? 0 : card.stats.moveSpeed, // King's Trap: rooted
     range: card.stats.range,
@@ -116,6 +129,7 @@ function makeUnit(
     facing,
     isKing,
     below: placement.below ?? null,
+    buff: placement.buff,
   });
 }
 

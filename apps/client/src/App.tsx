@@ -2,11 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { PHASES } from "@amanda/shared";
 import { useMatch } from "./game/useMatch";
 import { sfx } from "./game/sfx";
+import { ACTIONS } from "./data/catalog";
 import { BoardGrid } from "./components/BoardGrid";
 import { CardView } from "./components/CardView";
 import { CardDetailModal } from "./components/CardDetailModal";
 import { Arena } from "./components/Arena";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+const ACTION_ICON: Record<string, string> = {
+  energy_boost: "⚡",
+  xray: "👁️",
+  full_refuel: "⬆️",
+};
 
 const PHASE_LABEL: Record<string, string> = {
   build: PHASES.build.label.he,
@@ -91,39 +98,60 @@ export default function App() {
       {showBoards && (
         <main className={`build${m.phase === "panic" ? " build--panic" : ""}`}>
           <div className="boards">
-            <section className="side side--enemy">
-              <div className="side__label">
-                🤖 היריב {m.phase === "build" ? "· ערפל קרב" : "· נחשף!"}
-              </div>
-              <BoardGrid
-                placements={m.opponent.placements}
-                king={m.opponent.king}
-                facing="down"
-                compact
-                reveal={m.revealOpponentCell}
-                revealKing={m.revealOpponentKing}
-                onCardInfo={openInfo}
-              />
-            </section>
-
-            <div className="midline">
-              <span>⚔️ קו הקרב ⚔️</span>
-            </div>
-
             <section className="side side--me">
+              <div className="side__label">🧑 אתה · חזית ⟶</div>
               <BoardGrid
                 placements={m.placements}
                 king={m.king}
-                facing="up"
+                side="left"
                 interactive={interactive}
                 handActive={m.hand !== null}
                 onCellClick={(x, y) => m.placeAt(x, y)}
                 onKingClick={m.placeKing}
                 onCardInfo={openInfo}
               />
-              <div className="side__label">🧑 אתה · החזית שלך למעלה ↑</div>
+            </section>
+
+            <div className="midline">
+              <span>⚔️</span>
+            </div>
+
+            <section className="side side--enemy">
+              <div className="side__label">
+                🤖 היריב {m.phase === "build" ? "· ערפל" : "· נחשף!"} ⟵ חזית
+              </div>
+              <BoardGrid
+                placements={m.opponent.placements}
+                king={m.opponent.king}
+                side="right"
+                reveal={m.revealOpponentCell}
+                revealKing={m.revealOpponentKing}
+                onCardInfo={openInfo}
+              />
             </section>
           </div>
+
+          {interactive && (
+            <div className="actions">
+              <span className="actions__title">קלפי פעולה:</span>
+              {m.actions.map((a) => {
+                const card = ACTIONS.get(a.id);
+                return (
+                  <button
+                    key={a.id}
+                    className="action-chip"
+                    disabled={a.used}
+                    title={card?.description.he}
+                    onClick={() => m.activateAction(a.id)}
+                  >
+                    <span className="action-chip__icon">{ACTION_ICON[a.id] ?? "🎴"}</span>
+                    <span className="action-chip__name">{card?.name.he}</span>
+                    {a.used && <span className="action-chip__used">✔</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {interactive && (
             <aside className="hand">

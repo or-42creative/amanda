@@ -102,27 +102,32 @@ body {
   to { box-shadow: inset 0 0 80px 0 rgba(255, 90, 90, 0.22); }
 }
 
-/* Vertical facing layout: opponent on top, you at the bottom, fronts meeting. */
+/* Horizontal facing layout: you on the left, opponent on the right, fronts meet. */
 .boards {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  /* Force left→right so you are on the left and the opponent on the right,
+     matching the battle arena — independent of the page's RTL direction. */
+  direction: ltr;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   min-height: 0;
 }
 .side {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 }
 .side__label {
   font-weight: 700;
   font-size: 13px;
   color: var(--muted);
+  white-space: nowrap;
 }
 .side--enemy .side__label {
   color: #ff9a9a;
@@ -131,22 +136,17 @@ body {
   color: #9fd0ff;
 }
 .midline {
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(70vw, 520px);
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  color: var(--accent);
+  font-size: 22px;
 }
-.midline::before,
-.midline::after {
-  content: "";
-  flex: 1;
-  height: 2px;
-  margin: 0 8px;
-  background: linear-gradient(90deg, transparent, #3a4a63, transparent);
+.midline span {
+  padding: 6px 2px;
+  border-inline: 2px solid transparent;
+  background: linear-gradient(180deg, transparent, #3a4a63, transparent) center / 2px 100% no-repeat;
 }
 
 .board {
@@ -154,15 +154,14 @@ body {
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
   gap: 6px;
-  width: clamp(170px, 31vh, 300px);
+  width: max(160px, min(42vh, 44vw));
+  max-width: 380px;
   aspect-ratio: 1;
   padding: 7px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
-}
-.board--compact {
-  width: clamp(160px, 29vh, 280px);
+  flex: none;
 }
 
 .slot {
@@ -175,6 +174,9 @@ body {
   background: #0f1524;
   transition: border-color 0.12s, transform 0.08s;
   overflow: hidden;
+  /* Critical: let 1fr tracks stay equal instead of growing to card content. */
+  min-width: 0;
+  min-height: 0;
 }
 .slot:hover {
   border-color: var(--accent);
@@ -198,6 +200,9 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-radius: 8px;
   padding: 3px;
   cursor: pointer;
@@ -252,12 +257,18 @@ body {
 }
 .card__name {
   font-weight: 700;
-  font-size: 12px;
-  line-height: 1.05;
-  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.08;
+  margin-top: 9px;
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
-.card--small .card__name { font-size: 10px; margin-top: 6px; }
-.card--large .card__name { font-size: 17px; }
+.card--small .card__name { font-size: 11px; margin-top: 7px; }
+.card--large .card__name { font-size: 18px; }
 .card__stats {
   display: flex;
   gap: 6px;
@@ -272,6 +283,40 @@ body {
   cursor: default;
 }
 .card-back__mark { font-size: 20px; opacity: 0.5; }
+
+/* ---- action-card bar ---- */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 6px 14px;
+  background: rgba(20, 26, 41, 0.6);
+  border-top: 1px solid var(--line);
+}
+.actions__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.action-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: linear-gradient(160deg, #2a2436, #1b2436);
+  font-size: 13px;
+  font-weight: 700;
+}
+.action-chip__icon { font-size: 15px; }
+.action-chip:disabled {
+  opacity: 0.45;
+  border-color: var(--line);
+}
+.action-chip__used { color: #5ad25a; }
 
 /* ---- hand bottom bar ---- */
 .hand {
@@ -569,8 +614,8 @@ button:disabled {
 
 /* ---- portrait / small screens ---- */
 @media (max-width: 760px) {
-  .board { width: clamp(150px, 27vh, 240px); }
-  .board--compact { width: clamp(140px, 25vh, 230px); }
+  .board { width: max(150px, min(40vh, 46vw)); }
+  .midline { font-size: 16px; }
   .modal__stats { grid-template-columns: repeat(3, 1fr); }
   .hand { gap: 10px; padding: 8px 12px; }
   .intro__card { padding: 28px 24px; }

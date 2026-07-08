@@ -5,11 +5,12 @@ interface Props {
   placements: Record<string, string>;
   king: string | null;
   /**
-   * Which way the board's front row (depth x=3) points. "up" = front at the top
-   * (the player, at the bottom of the screen); "down" = front at the bottom
-   * (the opponent, at the top of the screen). The two thus face each other.
+   * Which side of the screen this board sits on. The front row (depth x=3)
+   * always points toward the center, so the two boards face each other:
+   * "left" board (you) → front on its right; "right" board (opponent) → front
+   * on its left.
    */
-  facing: "up" | "down";
+  side: "left" | "right";
   reveal?: (x: number, y: number) => boolean;
   revealKing?: boolean;
   interactive?: boolean;
@@ -23,7 +24,7 @@ interface Props {
 export function BoardGrid({
   placements,
   king,
-  facing,
+  side,
   reveal,
   revealKing = true,
   interactive = false,
@@ -38,9 +39,10 @@ export function BoardGrid({
     for (let y = 0; y < BOARD_SIZE; y++) if (!isKingCell(x, y)) cells.push({ x, y });
 
   const size = compact ? "small" : "medium";
-  // Depth (x) runs vertically; lanes (y) run horizontally so both boards' lanes align.
-  const rowForX = (x: number) => (facing === "up" ? BOARD_SIZE - x : x + 1);
-  const colForY = (y: number) => y + 1;
+  // Depth (x) runs horizontally so the two boards face each other; lanes (y)
+  // run vertically and align across both boards.
+  const colForX = (x: number) => (side === "left" ? x + 1 : BOARD_SIZE - x);
+  const rowForY = (y: number) => y + 1;
 
   return (
     <div className={`board${compact ? " board--compact" : ""}`} dir="ltr">
@@ -74,7 +76,7 @@ export function BoardGrid({
           <div
             key={key}
             className={`slot${occ && shown ? " slot--filled" : ""}`}
-            style={{ gridColumn: colForY(y), gridRow: rowForX(x) }}
+            style={{ gridColumn: colForX(x), gridRow: rowForY(y) }}
             onClick={() => {
               if (!interactive) return;
               if (occ) onCardInfo?.(occ);
