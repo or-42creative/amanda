@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { PHASES } from "@amanda/shared";
 import { useMatch } from "./game/useMatch";
 import { sfx } from "./game/sfx";
+import { music } from "./game/music";
 import { ACTIONS } from "./data/catalog";
 import { BoardGrid } from "./components/BoardGrid";
 import { CardView } from "./components/CardView";
@@ -38,6 +39,16 @@ export default function App() {
   const showBoards = m.phase === "build" || m.phase === "panic" || m.phase === "prebattle";
   const interactive = m.phase === "build" || m.phase === "panic";
 
+  // Background music follows the phase (crossfading between clips).
+  useEffect(() => {
+    if (m.phase === "intro" || m.phase === "countdown") music.play("menu");
+    else if (m.phase === "build") music.play("build");
+    else if (m.phase === "panic") music.play("panic");
+    else if (m.phase === "battle") music.play("battle");
+    else if (m.phase === "result")
+      music.play(m.result?.winner === "A" ? "win" : "lose", { loop: false });
+  }, [m.phase, m.result]);
+
   // Countdown beeps for the timed overlays.
   const secRef = useRef(-1);
   useEffect(() => {
@@ -68,7 +79,11 @@ export default function App() {
         <button
           className="mute"
           title="צליל"
-          onClick={() => setMuted(sfx.toggleMute())}
+          onClick={() => {
+            const nowMuted = sfx.toggleMute();
+            music.setMuted(nowMuted);
+            setMuted(nowMuted);
+          }}
           style={{ marginInlineStart: m.phase === "build" || m.phase === "panic" ? 0 : "auto" }}
         >
           {muted ? "🔇" : "🔊"}

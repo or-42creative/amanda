@@ -1,0 +1,79 @@
+/**
+ * Background music manager. Plays one looping track at a time and crossfades
+ * between them on phase changes. Tracks are short clips cut from the film
+ * soundtrack (see apps/client/public/music). Volume sits under the SFX so the
+ * game sounds still read clearly. Must be started from a user gesture (the
+ * Start button) — pre-gesture play() is blocked by the browser and ignored.
+ */
+export type MusicName = "menu" | "build" | "panic" | "battle" | "win" | "lose";
+
+const BASE = import.meta.env.BASE_URL;
+const URLS: Record<MusicName, string> = {
+  menu: `${BASE}music/menu.mp3`,
+  build: `${BASE}music/build.mp3`,
+  panic: `${BASE}music/panic.mp3`,
+  battle: `${BASE}music/battle.mp3`,
+  win: `${BASE}music/win.mp3`,
+  lose: `${BASE}music/lose.mp3`,
+};
+
+interface Ramping extends HTMLAudioElement {
+  __ramp?: number;
+}
+
+function ramp(el: Ramping, target: number, ms: number, onDone?: () => void): void {
+  if (el.__ramp) window.clearInterval(el.__ramp);
+  const start = el.volume;
+  const steps = Math.max(1, Math.round(ms / 30));
+  let i = 0;
+  el.__ramp = window.setInterval(() => {
+    i++;
+    el.volume = Math.min(1, Math.max(0, start + (target - start) * (i / steps)));
+    if (i >= steps) {
+      window.clearInterval(el.__ramp);
+      el.__ramp = undefined;
+      onDone?.();
+    }
+  }, 30);
+}
+
+class Music {
+  private el: Ramping | null = null;
+  private current: MusicName | null = null;
+  private muted = false;
+  private baseVolume = 0.35;
+
+  play(name: MusicName, opts: { loop?: boolean } = {}): void {
+    const loop = opts.loop ?? true;
+    // Already playing this track → nothing to do (but retry if a prior attempt
+    // was blocked before a user gesture and is still paused).
+    if (this.current === name && this.el && !this.el.paused) return;
+
+    const next = new Audio(URLS[name]) as Ramping;
+    next.loop = loop;
+    next.volume = 0;
+    next.play().catch(() => {
+      /* autoplay blocked until the first user gesture — ignored */
+    });
+
+    const prev = this.el;
+    this.el = next;
+    this.current = name;
+    ramp(next, this.muted ? 0 : this.baseVolume, 800);
+    if (prev) ramp(prev, 0, 800, () => prev.pause());
+  }
+
+  stop(): void {
+    const prev = this.el;
+    this.el = null;
+    this.current = null;
+    if (prev) ramp(prev, 0, 500, () => prev.pause());
+  }
+
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    if (this.el) ramp(this.el, muted ? 0 : this.baseVolume, 250);
+  }
+}
+
+export const music = new Music();

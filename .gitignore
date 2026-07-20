@@ -27,3 +27,7 @@ pnpm-debug.log*
 # native mobile build artifacts (Capacitor, later)
 android/
 ios/
+
+# full-length source soundtracks (~17MB) — kept local; the trimmed, compressed
+# clips used by the game live in apps/client/public/music and ARE committed.
+soundtracks/
