@@ -6,7 +6,10 @@ import react from "@vitejs/plugin-react";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // On GitHub Pages the site lives at /amanda/, so built asset URLs need that
+  // prefix. Dev server stays at the root.
+  base: command === "build" ? "/amanda/" : "/",
   plugins: [react()],
   server: {
     // Allow importing the shared card JSON that lives at the repo root /data.
@@ -17,4 +20,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@amanda/shared", "@amanda/engine"],
   },
-});
+}));
