@@ -41,7 +41,8 @@ export default function App() {
 
   // Background music follows the phase (crossfading between clips).
   useEffect(() => {
-    if (m.phase === "intro" || m.phase === "countdown") music.play("menu");
+    if (m.phase === "intro" || m.phase === "countdown" || m.phase === "waiting")
+      music.play("menu");
     else if (m.phase === "build") music.play("build");
     else if (m.phase === "panic") music.play("panic");
     else if (m.phase === "battle") music.play("battle");
@@ -64,7 +65,7 @@ export default function App() {
   }, [m.timeLeft, m.phase]);
 
   const winnerText =
-    m.result?.winner === "A" ? "🎉 ניצחת!" : m.result?.winner === "B" ? "😢 הפסדת" : "🤝 תיקו";
+    m.oppLeft && !m.result ? "🎉 היריב עזב — ניצחת!" : m.iWon ? "🎉 ניצחת!" : "😢 הפסדת";
 
   return (
     <div className="app">
@@ -107,10 +108,42 @@ export default function App() {
                 <div className="who__name">היריב</div>
               </div>
             </div>
-            <button className="btn-fight" onClick={m.startMatch}>
-              ▶️ התחל משחק
+            <div className="intro__buttons">
+              <button className="btn-fight" onClick={m.startMatch}>
+                🤖 נגד המחשב
+              </button>
+              <button
+                className="btn-fight btn-online"
+                onClick={m.startOnline}
+                disabled={!m.onlineAvailable}
+                title={m.onlineAvailable ? "" : "לא זמין בבנייה הזו (צריך שרת)"}
+              >
+                🌐 אונליין
+              </button>
+            </div>
+            <p className="intro__hint">
+              דקה וחצי לבנות את הלוח · 15 שניות פאניקה · 15 שניות קרב
+              {!m.onlineAvailable && (
+                <>
+                  <br />
+                  (מצב אונליין דורש שרת פעיל)
+                </>
+              )}
+            </p>
+          </div>
+        </main>
+      )}
+
+      {/* ---- waiting for an online opponent ---- */}
+      {m.phase === "waiting" && (
+        <main className="intro">
+          <div className="intro__card">
+            <div className="overlay__count" style={{ fontSize: 60 }}>🌐</div>
+            <h2>מחפש יריב…</h2>
+            <p className="intro__tag">פתחו את המשחק בטאב/מכשיר נוסף כדי לשחק אחד נגד השני</p>
+            <button className="btn-fight" onClick={m.reset}>
+              ביטול
             </button>
-            <p className="intro__hint">2 דקות לבנות את הלוח · חצי דקה פאניקה · 15 שניות קרב</p>
           </div>
         </main>
       )}
@@ -276,20 +309,22 @@ export default function App() {
               </div>
             }
           >
-            <Arena result={m.result} onFinish={m.finishBattle} />
+            <Arena result={m.result} onFinish={m.finishBattle} flip={m.mySide === "B"} />
           </ErrorBoundary>
         </main>
       )}
 
       {/* ---- result ---- */}
-      {m.phase === "result" && m.result && (
+      {m.phase === "result" && (
         <main className="result">
           <div className="result__card">
             <h1>{winnerText}</h1>
-            <p>
-              הקרב נמשך {(m.result.ticks / 30).toFixed(1)} שניות ·{" "}
-              {m.result.events.filter((e) => e.type === "death").length} מפלצות נפלו
-            </p>
+            {m.result && (
+              <p>
+                הקרב נמשך {(m.result.ticks / 30).toFixed(1)} שניות ·{" "}
+                {m.result.events.filter((e) => e.type === "death").length} מפלצות נפלו
+              </p>
+            )}
             <button className="btn-fight" onClick={m.reset}>
               🔄 משחק חדש
             </button>

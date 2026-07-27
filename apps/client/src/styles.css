@@ -578,6 +578,20 @@ button:disabled {
 .who__name { font-weight: 700; }
 .versus__x { font-size: 24px; font-weight: 800; color: var(--accent); }
 .intro .btn-fight { margin: 0 auto; }
+.intro__buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-online {
+  background: linear-gradient(160deg, #2f8bff, #1f4fd0);
+}
+.btn-online:disabled {
+  filter: grayscale(0.7);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ---- countdown / prebattle overlay ---- */
 .overlay {

@@ -28,6 +28,11 @@ jobs:
           cache: pnpm
       - run: pnpm install
       - run: pnpm --filter @amanda/client build
+        env:
+          # Set this repo variable (Settings → Secrets and variables → Actions →
+          # Variables) to your deployed server, e.g. wss://amanda-server.onrender.com,
+          # to enable the "Online" button on the public site.
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/client/dist

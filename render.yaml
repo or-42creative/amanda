@@ -1,0 +1,13 @@
+# Render.com Blueprint for the Amanda multiplayer server.
+# Deploy: push this repo, then on render.com → New → Blueprint → pick this repo.
+# Render injects PORT automatically; the server reads process.env.PORT.
+services:
+  - type: web
+    name: amanda-server
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --config.confirmModulesPurge=false
+    startCommand: pnpm --filter @amanda/server start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

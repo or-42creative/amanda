@@ -17,3 +17,6 @@ export * from "./loader.js";
 
 // Central tunable configuration
 export * from "./config.js";
+
+// Multiplayer wire protocol
+export * from "./net.js";

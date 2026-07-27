@@ -35,7 +35,16 @@ interface Burst {
   life: number;
 }
 
-export function Arena({ result, onFinish }: { result: BattleResult; onFinish: () => void }) {
+export function Arena({
+  result,
+  onFinish,
+  flip = false,
+}: {
+  result: BattleResult;
+  onFinish: () => void;
+  /** Mirror horizontally so the local player (B) still sees themselves on the left. */
+  flip?: boolean;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const finishedRef = useRef(false);
 
@@ -49,6 +58,10 @@ export function Arena({ result, onFinish }: { result: BattleResult; onFinish: ()
     const gfxByUid = new Map<string, UnitGfx>();
     const floaters: Floater[] = [];
     const bursts: Burst[] = [];
+    // When flipped, mirror horizontally so the local player is on the left.
+    const fx = (col: number): number => (flip ? W - cx(col) : cx(col));
+    const localTint = flip ? OWNER_TINT.B : OWNER_TINT.A;
+    const oppTint = flip ? OWNER_TINT.A : OWNER_TINT.B;
 
     function drawUnit(fu: FrameUnit): UnitGfx {
       const container = new Container();
@@ -94,7 +107,7 @@ export function Arena({ result, onFinish }: { result: BattleResult; onFinish: ()
     function applyFrame(units: FrameUnit[]): void {
       for (const fu of units) {
         const g = gfxByUid.get(fu.uid) ?? drawUnit(fu);
-        g.container.x = cx(fu.col);
+        g.container.x = fx(fu.col);
         g.container.y = cy(laneCenter(fu.lanes));
         g.targetAlpha = fu.alive ? 1 : 0;
         const ratio = Math.max(0, Math.min(1, fu.hp / fu.maxHp));
@@ -164,8 +177,8 @@ export function Arena({ result, onFinish }: { result: BattleResult; onFinish: ()
         hostRef.current?.appendChild(app.canvas);
 
         const bg = new Graphics();
-        bg.rect(0, 0, W / 2, H).fill({ color: OWNER_TINT.A, alpha: 0.06 });
-        bg.rect(W / 2, 0, W / 2, H).fill({ color: OWNER_TINT.B, alpha: 0.06 });
+        bg.rect(0, 0, W / 2, H).fill({ color: localTint, alpha: 0.06 });
+        bg.rect(W / 2, 0, W / 2, H).fill({ color: oppTint, alpha: 0.06 });
         for (let l = 0; l <= ARENA.lanes; l++) bg.moveTo(0, l * CELL).lineTo(W, l * CELL);
         for (let c = 0; c <= ARENA.width; c++) bg.moveTo(c * CELL, 0).lineTo(c * CELL, H);
         bg.stroke({ width: 1, color: 0x263041 });
@@ -183,8 +196,8 @@ export function Arena({ result, onFinish }: { result: BattleResult; onFinish: ()
           t.y = 4;
           app.stage.addChild(t);
         };
-        banner("🧑 אתה", W * 0.25, OWNER_TINT.A);
-        banner("🤖 היריב", W * 0.75, OWNER_TINT.B);
+        banner("🧑 אתה", W * 0.25, localTint);
+        banner("🤖 היריב", W * 0.75, oppTint);
 
         const frames = result.frames;
         const events = result.events;

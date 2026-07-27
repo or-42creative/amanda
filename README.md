@@ -83,8 +83,26 @@ pnpm typecheck       # type-check every package
 
 1. ✅ **Foundation** — monorepo, JSON card schema, seed data
 2. ✅ **Engine** — headless deterministic combat sim + tests (4×8 arena, lanes, stacking, abilities)
-3. ✅ **Client** — React + Pixi local playable single-player loop
-4. ⬜ **Multiplayer** — drop the engine into a Colyseus room
+3. ✅ **Client** — React + Pixi playable loop (vs-AI), music, action cards
+4. ✅ **Multiplayer** — authoritative WebSocket server (`apps/server`), 1v1 online
+
+### Multiplayer (Step 4)
+
+`apps/server` is a lean **authoritative WebSocket server** (plain `ws`, not Colyseus —
+simpler for v1, same architecture). It matchmakes two players, drives the phase timeline,
+relays each player's front row for fog-of-war, and at lock-time runs the **deterministic
+engine once** to decide the winner, then broadcasts `seed + both boards` so each client
+**replays the identical battle** locally. Cheat-resistant and low-bandwidth.
+
+```bash
+pnpm --filter @amanda/server dev     # start the server on :2567
+pnpm --filter @amanda/client dev     # then open two tabs, both click 🌐 אונליין
+```
+
+**Going live:** GitHub Pages can't host a WebSocket server, so deploy `apps/server`
+separately (a `render.yaml` blueprint is included — Render free tier works), then set the
+repo Actions **variable** `VITE_SERVER_URL` to `wss://<your-server>` and re-run the deploy.
+Until then the public site's **Online** button is disabled; **vs-computer** works offline.
 
 ### Run the game (Step 3)
 

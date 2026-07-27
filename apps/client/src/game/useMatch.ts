@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DECK, PHASES } from "@amanda/shared";
+import { DECK, PHASES, type Side } from "@amanda/shared";
 import {
   runBattle,
   type BattleResult,
@@ -20,8 +20,17 @@ import {
   isTargetedAction,
 } from "../data/catalog";
 import { sfx } from "./sfx";
+import { Net, ONLINE_AVAILABLE } from "./net";
 
-export type Phase = "intro" | "countdown" | "build" | "panic" | "prebattle" | "battle" | "result";
+export type Phase =
+  | "intro"
+  | "waiting"
+  | "countdown"
+  | "build"
+  | "panic"
+  | "prebattle"
+  | "battle"
+  | "result";
 
 const BATTLE_SEED = 20260707;
 const COUNTDOWN_SECONDS = 3;
@@ -150,6 +159,29 @@ interface GameState {
   king: string | null;
 }
 
+/**
+ * Lock the board: auto-promote a King if needed, then fill empty slots with the
+ * held Fill-action cards first and Crumb Demons after. Pure + used once so the
+ * displayed board and the battle board match exactly (the shuffle runs once).
+ */
+function fillGs(s: GameState, bar: string[]): GameState {
+  const resolved = resolveKing(s.king, s.placements);
+  const placements = { ...resolved.placements };
+  const empties = shuffle(perimeterCells().filter((c) => !placements[cellKey(c.x, c.y)]));
+  let idx = 0;
+  for (const actId of bar) {
+    const a = ACTIONS.get(actId);
+    if (a?.effect !== "fillEmpty") continue;
+    const cardId = String(a.params.cardId);
+    const count = Number(a.params.count ?? 3);
+    for (let n = 0; n < count && idx < empties.length; n++, idx++)
+      placements[cellKey(empties[idx]!.x, empties[idx]!.y)] = cardId;
+  }
+  for (; idx < empties.length; idx++)
+    placements[cellKey(empties[idx]!.x, empties[idx]!.y)] = "crumb_demon";
+  return { ...s, king: resolved.king, placements, hand: null };
+}
+
 function initialGameState(): GameState {
   return { deck: matchDeck(), hand: null, discard: [], placements: {}, king: null };
 }
@@ -187,12 +219,19 @@ export interface MatchApi {
   /** Action id currently awaiting a board target, or null. */
   targeting: string | null;
   mods: BattleMods;
+  /** Multiplayer state. */
+  online: boolean;
+  onlineAvailable: boolean;
+  mySide: Side;
+  oppLeft: boolean;
+  iWon: boolean;
   takeAction: () => void;
   activateAction: (id: string) => void;
   applyTargetCell: (x: number, y: number) => void;
   applyTargetKing: () => void;
   cancelTargeting: () => void;
   startMatch: () => void;
+  startOnline: () => void;
   discardHand: () => void;
   takeDiscard: () => void;
   placeAt: (x: number, y: number) => void;
@@ -213,6 +252,16 @@ export function useMatch(): MatchApi {
   const [boostedCells, setBoostedCells] = useState<Record<string, true>>({});
   const [xrayActive, setXrayActive] = useState(false);
   const [targeting, setTargeting] = useState<string | null>(null);
+  const [online, setOnline] = useState(false);
+  const [mySide, setMySide] = useState<Side>("A");
+  const [oppLeft, setOppLeft] = useState(false);
+  const [netOpp, setNetOpp] = useState<BoardView>({ placements: {}, king: null });
+
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
+  const mySideRef = useRef(mySide);
+  mySideRef.current = mySide;
+  const netRef = useRef<Net | null>(null);
 
   const gsRef = useRef(gs);
   gsRef.current = gs;
@@ -344,30 +393,13 @@ export function useMatch(): MatchApi {
 
   const enterPrebattle = useCallback(() => {
     setTargeting(null);
-    setGs((s) => {
-      const resolved = resolveKing(s.king, s.placements);
-      const placements = { ...resolved.placements };
-      const empties = shuffle(perimeterCells().filter((c) => !placements[cellKey(c.x, c.y)]));
-      let idx = 0;
-      for (const actId of barRef.current) {
-        const a = ACTIONS.get(actId);
-        if (a?.effect !== "fillEmpty") continue;
-        const cardId = String(a.params.cardId);
-        const count = Number(a.params.count ?? 3);
-        for (let n = 0; n < count && idx < empties.length; n++, idx++) {
-          const c = empties[idx]!;
-          placements[cellKey(c.x, c.y)] = cardId;
-        }
-      }
-      for (; idx < empties.length; idx++) {
-        const c = empties[idx]!;
-        placements[cellKey(c.x, c.y)] = "crumb_demon";
-      }
-      return { ...s, king: resolved.king, placements, hand: null };
-    });
+    const filled = fillGs(gsRef.current, barRef.current);
+    setGs(filled);
     sfx.play("crumbs");
     setPhase("prebattle");
     setTimeLeft(PREBATTLE_SECONDS);
+    // In an online match, submit the locked board to the server now.
+    if (onlineRef.current) netRef.current?.lock(buildPlayerBoard(filled, modsRef.current));
   }, []);
 
   const startBattle = useCallback(() => {
@@ -392,13 +424,58 @@ export function useMatch(): MatchApi {
     setTimeLeft(COUNTDOWN_SECONDS);
   }, []);
 
+  const startOnline = useCallback(() => {
+    if (!ONLINE_AVAILABLE) return;
+    sfx.unlock();
+    sfx.play("click");
+    setOnline(true);
+    setOppLeft(false);
+    setPhase("waiting");
+    const net = new Net();
+    netRef.current = net;
+    net.connect({
+      onStart: (side) => setMySide(side),
+      onPhase: (p, timeLeft) => {
+        if (p === "locking") {
+          enterPrebattle();
+        } else {
+          setPhase(p as Phase);
+          setTimeLeft(timeLeft);
+          if (p === "build") setGs((s) => drawIfEmpty(s));
+        }
+      },
+      onOpp: (view) => setNetOpp(view),
+      onResult: (r) => {
+        const res = runBattle({
+          seed: r.seed,
+          catalog: CATALOG,
+          synergies: SYNERGIES,
+          a: r.boardA as BoardInput,
+          b: r.boardB as BoardInput,
+          recordFrames: true,
+        });
+        setResult(res);
+        sfx.play("go");
+        setPhase("battle");
+      },
+      onOppLeft: () => {
+        setOppLeft(true);
+        // If the match hadn't resolved, you win by forfeit.
+        setPhase((prev) => (prev === "battle" || prev === "result" ? prev : "result"));
+      },
+      onClose: () => setOppLeft(true),
+    });
+  }, [enterPrebattle]);
+
   const finishBattle = useCallback(() => {
     const w = result?.winner;
-    sfx.play(w === "A" ? "win" : w === "B" ? "lose" : "beep");
+    sfx.play(w === mySideRef.current ? "win" : "lose");
     setPhase("result");
   }, [result]);
 
   const reset = useCallback(() => {
+    netRef.current?.close();
+    netRef.current = null;
     aiPlanRef.current = generateAiPlan();
     setGs(initialGameState());
     setResult(null);
@@ -408,6 +485,10 @@ export function useMatch(): MatchApi {
     setBoostedCells({});
     setXrayActive(false);
     setTargeting(null);
+    setOnline(false);
+    setOppLeft(false);
+    setMySide("A");
+    setNetOpp({ placements: {}, king: null });
     setTimeLeft(COUNTDOWN_SECONDS);
     setPhase("intro");
   }, []);
@@ -420,6 +501,8 @@ export function useMatch(): MatchApi {
 
   useEffect(() => {
     if (timeLeft > 0) return;
+    // Online: the server drives phase changes; the local timer is display-only.
+    if (online) return;
     if (phase === "countdown") {
       setPhase("build");
       setTimeLeft(PHASES.build.seconds);
@@ -432,30 +515,46 @@ export function useMatch(): MatchApi {
     } else if (phase === "prebattle") {
       startBattle();
     }
-  }, [timeLeft, phase, enterPrebattle, startBattle]);
+  }, [timeLeft, phase, online, enterPrebattle, startBattle]);
+
+  // Online: send our board to the server for the opponent's fog-of-war view.
+  useEffect(() => {
+    if (online) netRef.current?.sendBoard({ placements: gs.placements, king: gs.king });
+  }, [online, gs.placements, gs.king]);
+
+  // Tidy up the socket if the component unmounts.
+  useEffect(() => () => netRef.current?.close(), []);
 
   const revealOpponentCell = useCallback(
     (x: number, _y: number): boolean => {
+      // Online: the server already fogs the opponent view, so show all it sent.
+      if (online) return true;
       if (xrayActive) return true;
       if (phase === "build") return x === 3;
       if (phase === "panic" || phase === "prebattle") return x >= 1;
       return true;
     },
-    [phase, xrayActive],
+    [phase, xrayActive, online],
   );
 
-  const plan = aiPlanRef.current;
-  let visible = plan.length;
-  if (phase === "build") {
-    const frac = 1 - timeLeft / PHASES.build.seconds;
-    visible = Math.max(0, Math.min(plan.length, Math.ceil(frac * plan.length)));
-  } else if (phase === "intro" || phase === "countdown") {
-    visible = 0;
-  }
-  const opponentView: BoardView = { placements: {}, king: null };
-  for (const p of plan.slice(0, visible)) {
-    if (p.king) opponentView.king = p.cardId;
-    else opponentView.placements[cellKey(p.x, p.y)] = p.cardId;
+  // Opponent board: online → server-sent fogged view; vs-AI → the AI plan built over time.
+  let opponentView: BoardView;
+  if (online) {
+    opponentView = netOpp;
+  } else {
+    const plan = aiPlanRef.current;
+    let visible = plan.length;
+    if (phase === "build") {
+      const frac = 1 - timeLeft / PHASES.build.seconds;
+      visible = Math.max(0, Math.min(plan.length, Math.ceil(frac * plan.length)));
+    } else if (phase === "intro" || phase === "countdown") {
+      visible = 0;
+    }
+    opponentView = { placements: {}, king: null };
+    for (const p of plan.slice(0, visible)) {
+      if (p.king) opponentView.king = p.cardId;
+      else opponentView.placements[cellKey(p.x, p.y)] = p.cardId;
+    }
   }
 
   return {
@@ -475,12 +574,18 @@ export function useMatch(): MatchApi {
     barFull: actionBar.length >= ACTION_SLOTS,
     targeting,
     mods: { boardPowerAdd, boostedCells },
+    online,
+    onlineAvailable: ONLINE_AVAILABLE,
+    mySide,
+    oppLeft,
+    iWon: result != null && result.winner === mySide,
     takeAction,
     activateAction,
     applyTargetCell,
     applyTargetKing,
     cancelTargeting,
     startMatch,
+    startOnline,
     discardHand,
     takeDiscard,
     placeAt,
