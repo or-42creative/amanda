@@ -1,0 +1,77 @@
+import { writeFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+import { fal } from "@fal-ai/client";
+import "dotenv/config";
+
+const MODEL = "fal-ai/nano-banana-pro";
+const EDIT_MODEL = "fal-ai/nano-banana-pro/edit";
+
+if (!process.env.FAL_KEY) {
+  console.error(
+    "\n❌ FAL_KEY is missing.\n" +
+      "   Create a .env file in the repo root containing:\n" +
+      "     FAL_KEY=your_key_here\n" +
+      "   (.env is git-ignored — the key never leaves your machine.)\n",
+  );
+  process.exit(1);
+}
+fal.config({ credentials: process.env.FAL_KEY });
+
+interface FalImage {
+  url: string;
+}
+interface FalResult {
+  images?: FalImage[];
+}
+
+/** Generate from text only. Used for the style bake-off and the anchor. */
+export async function generate(prompt: string, opts: { numImages?: number; seed?: number } = {}) {
+  const res = (await fal.subscribe(MODEL, {
+    input: {
+      prompt,
+      aspect_ratio: "1:1",
+      resolution: "1K",
+      output_format: "png",
+      num_images: opts.numImages ?? 1,
+      ...(opts.seed !== undefined ? { seed: opts.seed } : {}),
+    },
+  })) as { data: FalResult };
+  return res.data.images ?? [];
+}
+
+/** Generate a new creature while inheriting the style of the reference image(s). */
+export async function generateWithReference(
+  prompt: string,
+  referenceUrls: string[],
+  opts: { numImages?: number; seed?: number } = {},
+) {
+  const res = (await fal.subscribe(EDIT_MODEL, {
+    input: {
+      prompt,
+      image_urls: referenceUrls,
+      aspect_ratio: "1:1",
+      resolution: "1K",
+      output_format: "png",
+      num_images: opts.numImages ?? 1,
+      ...(opts.seed !== undefined ? { seed: opts.seed } : {}),
+    },
+  })) as { data: FalResult };
+  return res.data.images ?? [];
+}
+
+/** Download a generated image to disk. */
+export async function download(url: string, destPath: string): Promise<void> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`download failed ${res.status} for ${url}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  await mkdir(dirname(destPath), { recursive: true });
+  await writeFile(destPath, buf);
+}
+
+/** Upload a local file so it can be used as a reference image. */
+export async function uploadFile(path: string): Promise<string> {
+  const { readFile } = await import("node:fs/promises");
+  const buf = await readFile(path);
+  const blob = new Blob([new Uint8Array(buf)], { type: "image/png" });
+  return fal.storage.upload(blob as unknown as File);
+}

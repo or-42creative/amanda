@@ -1,0 +1,26 @@
+{
+  "name": "@amanda/art",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "AI art generation pipeline for Amanda (fal.ai / Nano Banana Pro)",
+  "scripts": {
+    "style": "tsx src/cli.ts style",
+    "anchor": "tsx src/cli.ts anchor",
+    "cards": "tsx src/cli.ts cards",
+    "card": "tsx src/cli.ts card",
+    "process": "tsx src/process.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@amanda/shared": "workspace:*",
+    "@fal-ai/client": "^1.6.2",
+    "dotenv": "^16.4.7",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

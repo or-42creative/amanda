@@ -1,0 +1,70 @@
+import type { Card } from "@amanda/shared";
+import { FRAMING, SERIES_TEMPLATE, type StyleDirection } from "./styles.js";
+
+/**
+ * Turns a card's own GDD data into a visual description. The English name plus
+ * the element and the designer's "role" text already describe the creature, so
+ * the art stays faithful to the design document rather than inventing a look.
+ */
+const ELEMENT_LOOK: Record<string, string> = {
+  fire: "blazing fire motifs, glowing embers, molten cracks",
+  water: "flowing water motifs, wet glossy surface, cool blue tones",
+  earth: "rocky earthen textures, moss and soil tones",
+  air: "swirling wind motifs, feathery light forms, pale sky tones",
+  electric: "crackling electricity arcs, glowing yellow-white sparks",
+  metal: "polished metal plating, riveted armor, steel sheen",
+  light: "radiant golden glow, soft holy light aura",
+  dark: "shadowy smoke wisps, deep violet-black aura, eerie glow",
+  poison: "bubbling toxic ooze, sickly green vapor",
+  variable: "shifting iridescent surface that changes hue",
+};
+
+/** Kept body-shape agnostic — many melee monsters have no limbs at all. */
+const RANGE_LOOK: Record<string, string> = {
+  melee: "built for close-quarters combat",
+  ranged: "poised to hurl something from a distance",
+  sniper: "long-range shooter silhouette, focused precise stance",
+};
+
+/** Pose scales with actual movement speed so slow crawlers don't look like chargers. */
+function poseFor(card: Card): string {
+  if (card.stats.moveSpeed <= 0) return "grounded planted stance";
+  if (card.stats.moveSpeed >= 1.5) return "dynamic charging forward pose, sense of speed";
+  return "slowly advancing forward, deliberate heavy movement";
+}
+
+/** Build the full text prompt for one monster in a given style direction. */
+export function buildPrompt(card: Card, dir: StyleDirection): string {
+  const element = ELEMENT_LOOK[card.elements[0]!] ?? "";
+  const range = RANGE_LOOK[card.stats.range] ?? "";
+  const seriesLook = SERIES_TEMPLATE[card.seriesId] ?? "";
+  const role = card.role?.en ?? "";
+  const scale = card.midBoss
+    ? "colossal imposing boss creature, towering and massive"
+    : "creature character";
+  const motion = poseFor(card);
+
+  return [
+    `A ${scale} named "${card.name.en}" for a monster trading-card game.`,
+    role && `Character concept: ${role}`,
+    [element, seriesLook, range, motion].filter(Boolean).join(", ") + ".",
+    dir.style + ".",
+    FRAMING + ".",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Prompt used when generating against the approved style anchor image, so the
+ * new creature inherits the exact rendering style of the reference.
+ */
+export function buildAnchoredPrompt(card: Card, dir: StyleDirection): string {
+  return (
+    "Using the attached reference image ONLY as a style guide (matching its rendering technique, " +
+    "line quality, shading, color treatment, framing and background style), draw a COMPLETELY " +
+    "DIFFERENT creature: " +
+    buildPrompt(card, dir) +
+    " Do not copy the reference creature's shape, colors or species — only its art style."
+  );
+}
