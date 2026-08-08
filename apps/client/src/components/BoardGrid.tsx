@@ -25,6 +25,10 @@ interface Props {
   targeting?: boolean;
   onTarget?: (x: number, y: number) => void;
   onTargetKing?: () => void;
+  /** data-drop key currently hovered during a drag (highlights the slot). */
+  dragOver?: string | null;
+  /** True while a card is being dragged — marks legal empty slots. */
+  dragging?: boolean;
 }
 
 const KING_KEY = "king";
@@ -45,6 +49,8 @@ export function BoardGrid({
   targeting = false,
   onTarget,
   onTargetKing,
+  dragOver = null,
+  dragging = false,
 }: Props) {
   const buffFor = (key: string, cardId: string) => {
     if (!mods) return undefined;
@@ -69,7 +75,13 @@ export function BoardGrid({
   return (
     <div className={`board${compact ? " board--compact" : ""}`} dir="ltr">
       <div
-        className={`slot slot--king${king ? " slot--filled" : ""}${targeting && king ? " slot--target" : ""}`}
+        className={
+          `slot slot--king${king ? " slot--filled" : ""}` +
+          `${targeting && king ? " slot--target" : ""}` +
+          `${interactive && dragging && !king ? " slot--droppable" : ""}` +
+          `${dragOver === KING_KEY && !king ? " slot--dragover" : ""}`
+        }
+        data-drop={interactive && !king ? KING_KEY : undefined}
         style={{ gridColumn: "2 / 4", gridRow: "2 / 4" }}
         onClick={() => {
           if (!interactive) return;
@@ -103,7 +115,13 @@ export function BoardGrid({
         return (
           <div
             key={key}
-            className={`slot${occ && shown ? " slot--filled" : ""}${targeting && occ ? " slot--target" : ""}`}
+            className={
+              `slot${occ && shown ? " slot--filled" : ""}` +
+              `${targeting && occ ? " slot--target" : ""}` +
+              `${interactive && dragging && !occ ? " slot--droppable" : ""}` +
+              `${dragOver === key && !occ ? " slot--dragover" : ""}`
+            }
+            data-drop={interactive && !occ ? key : undefined}
             style={{ gridColumn: colForX(x), gridRow: rowForY(y) }}
             onClick={() => {
               if (!interactive) return;

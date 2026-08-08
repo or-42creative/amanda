@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PHASES } from "@amanda/shared";
 import { useMatch } from "./game/useMatch";
+import { useDrag } from "./game/useDrag";
 import { sfx } from "./game/sfx";
 import { music } from "./game/music";
 import { ACTIONS } from "./data/catalog";
@@ -38,6 +39,15 @@ export default function App() {
 
   const showBoards = m.phase === "build" || m.phase === "panic" || m.phase === "prebattle";
   const interactive = m.phase === "build" || m.phase === "panic";
+
+  // Drag a card from the hand onto a board slot (mouse + touch).
+  const { drag, start: startDrag, dragging } = useDrag((_cardId, target) => {
+    if (target === "king") m.placeKing();
+    else {
+      const [x, y] = target.split("-").map(Number);
+      if (x !== undefined && y !== undefined) m.placeAt(x, y);
+    }
+  });
 
   // Background music follows the phase (crossfading between clips).
   useEffect(() => {
@@ -164,6 +174,8 @@ export default function App() {
                 targeting={m.targeting !== null}
                 onTarget={m.applyTargetCell}
                 onTargetKing={m.applyTargetKing}
+                dragging={dragging}
+                dragOver={drag.over}
                 onCellClick={(x, y) => m.placeAt(x, y)}
                 onKingClick={m.placeKing}
                 onCardInfo={openInfo}
@@ -249,7 +261,18 @@ export default function App() {
                     <span className="action-hand__tag">קלף פעולה</span>
                   </button>
                 ) : (
-                  <CardView cardId={m.hand} size="large" onClick={() => openInfo(m.hand!)} onInfo={() => openInfo(m.hand!)} />
+                  <div
+                    className={`hand__draggable${dragging ? " hand__draggable--dragging" : ""}`}
+                    onPointerDown={(e) => startDrag(m.hand!, e)}
+                    title="גררו ללוח או לחצו לפרטים"
+                  >
+                    <CardView
+                      cardId={m.hand}
+                      size="large"
+                      onClick={() => !dragging && openInfo(m.hand!)}
+                      onInfo={() => openInfo(m.hand!)}
+                    />
+                  </div>
                 )}
               </div>
               <div className="hand__buttons">
@@ -330,6 +353,13 @@ export default function App() {
             </button>
           </div>
         </main>
+      )}
+
+      {/* floating card that follows the pointer while dragging */}
+      {drag.cardId && (
+        <div className="drag-ghost" style={{ left: drag.x, top: drag.y }}>
+          <CardView cardId={drag.cardId} size="medium" />
+        </div>
       )}
 
       {detail && <CardDetailModal cardId={detail} onClose={() => setDetail(null)} />}
